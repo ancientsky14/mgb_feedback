@@ -27,10 +27,11 @@
   // 23:00 UTC = 07:00 Manila: purge expired contact details and old rate-limit counters.
   "triggers": { "crons": ["0 23 * * *"] },
   "vars": {
-    // Your Zero Trust team domain, e.g. https://mgbr1.cloudflareaccess.com
-    "ACCESS_TEAM_DOMAIN": "",
+    // The Zero Trust team domain: the issuer of every Access token.
+    "ACCESS_TEAM_DOMAIN": "https://mgbr1-fad.cloudflareaccess.com",
     // The Application Audience (AUD) tag of the Access application protecting this Worker.
-    "ACCESS_AUD": ""
+    // Identifiers, not secrets: a token still has to be signed by the team's own keys.
+    "ACCESS_AUD": "a138656643d82c201196e9beaa0e7e89d317e47538d2b4bfeee59502e2df6dc3"
   }
   // Local development only, in .dev.vars: DEV_AUTH_EMAIL. Honoured only for localhost requests.
 }

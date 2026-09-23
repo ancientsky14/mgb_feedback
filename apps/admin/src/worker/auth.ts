@@ -20,6 +20,15 @@ function jwks(teamDomain: string) {
 
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
 
+/**
+ * The team domain as Access writes it in a token's `iss`: https://<team>.cloudflareaccess.com.
+ * The dashboard shows it without the scheme, so a value pasted from there still works.
+ */
+export function teamOrigin(value: string): string {
+  const trimmed = value.trim().replace(/\/+$/, "");
+  return /^https:\/\//i.test(trimmed) ? trimmed : `https://${trimmed.replace(/^http:\/\//i, "")}`;
+}
+
 type Identity = { ok: true; email: string } | { ok: false; status: 401 | 503; error: string };
 
 export async function identify(request: Request, env: AdminEnv): Promise<Identity> {
@@ -31,9 +40,10 @@ export async function identify(request: Request, env: AdminEnv): Promise<Identit
   if (!env.ACCESS_TEAM_DOMAIN || !env.ACCESS_AUD) return { ok: false, status: 503, error: "access_not_configured" };
   const token = request.headers.get("Cf-Access-Jwt-Assertion");
   if (!token) return { ok: false, status: 401, error: "not_signed_in" };
+  const team = teamOrigin(env.ACCESS_TEAM_DOMAIN);
   try {
-    const { payload } = await jwtVerify(token, jwks(env.ACCESS_TEAM_DOMAIN), {
-      issuer: env.ACCESS_TEAM_DOMAIN,
+    const { payload } = await jwtVerify(token, jwks(team), {
+      issuer: team,
       audience: env.ACCESS_AUD,
     });
     const email = typeof payload.email === "string" ? payload.email.toLowerCase() : "";

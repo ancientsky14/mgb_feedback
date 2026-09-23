@@ -49,8 +49,19 @@ if (target === "public") {
 
 if (target === "admin") {
   const config = "apps/admin/wrangler.jsonc";
-  if (!value(config, "ACCESS_TEAM_DOMAIN") || !value(config, "ACCESS_AUD")) {
+  const team = value(config, "ACCESS_TEAM_DOMAIN") ?? "";
+  const aud = value(config, "ACCESS_AUD") ?? "";
+  if (!team && !aud) {
     warn.push("ACCESS_TEAM_DOMAIN / ACCESS_AUD are empty. Fine for the first deploy, but the admin side refuses everyone until you enable Access, set both, and deploy again (DEPLOYMENT.md step 4).");
+  } else if (!team || !aud) {
+    stop.push("Set both ACCESS_TEAM_DOMAIN and ACCESS_AUD, or neither: with only one, nobody can sign in.");
+  } else {
+    if (!/^(https:\/\/)?[a-z0-9-]+\.cloudflareaccess\.com\/?$/i.test(team)) {
+      stop.push(`ACCESS_TEAM_DOMAIN "${team}" is not a team domain like https://<team>.cloudflareaccess.com.`);
+    }
+    if (!/^[0-9a-f]{64}$/.test(aud)) {
+      stop.push("ACCESS_AUD is not a 64-character Application Audience tag (Zero Trust → Access → Applications → the application → Overview).");
+    }
   }
 }
 

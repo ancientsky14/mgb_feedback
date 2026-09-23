@@ -3,6 +3,7 @@ import { env, exports } from "cloudflare:workers";
 import { SignJWT, exportJWK, generateKeyPair } from "jose";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createApp } from "../src/worker/app";
+import { teamOrigin } from "../src/worker/auth";
 import { ROUTE_ROLES } from "../src/worker/routes";
 import { runDailyPurge } from "../src/worker/scheduled";
 
@@ -85,6 +86,24 @@ describe("sign-in", () => {
   it("honours the development sign-in only on localhost", async () => {
     expect((await api("/api/me", { base: "http://localhost:5174" })).status).toBe(200);
     expect((await api("/api/me", { base: "https://feedback-admin.example.workers.dev" })).status).toBe(401);
+  });
+
+  it("accepts the team domain as the dashboard shows it, without https://", async () => {
+    const res = await createApp().request("/api/me", { headers: { "Cf-Access-Jwt-Assertion": await token("admin@mgb.test") } }, {
+      ...env,
+      ACCESS_TEAM_DOMAIN: "team.test",
+      DEV_AUTH_EMAIL: undefined,
+    });
+    expect(res.status).toBe(200);
+  });
+
+  it.each([
+    ["https://mgbr1-fad.cloudflareaccess.com", "https://mgbr1-fad.cloudflareaccess.com"],
+    ["mgbr1-fad.cloudflareaccess.com", "https://mgbr1-fad.cloudflareaccess.com"],
+    [" https://mgbr1-fad.cloudflareaccess.com/ ", "https://mgbr1-fad.cloudflareaccess.com"],
+    ["http://mgbr1-fad.cloudflareaccess.com", "https://mgbr1-fad.cloudflareaccess.com"],
+  ])("normalizes the team domain %j", (input, expected) => {
+    expect(teamOrigin(input)).toBe(expected);
   });
 
   it("fails closed when Access is not configured", async () => {

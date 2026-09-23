@@ -38,6 +38,9 @@ export function describeError(err: unknown): string {
   if (err instanceof ApiError) {
     const known: Record<string, string> = {
       forbidden: "Your role cannot do this.",
+      access_not_configured:
+        "Sign-in is not set up on this deployment yet: ACCESS_TEAM_DOMAIN and ACCESS_AUD are empty. Set them and run npm run deploy:admin.",
+      not_signed_in: "Your sign-in could not be verified. Reload the page; if it persists, the Access application's AUD tag does not match the configuration.",
       not_authorized: "Your email is not set up for this system. Ask the administrator to add you.",
       duplicate: "That already exists.",
       duplicate_control_no: "A paper form with this control number was already typed in this year.",
