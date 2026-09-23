@@ -1,0 +1,24 @@
+import { fileURLToPath } from "node:url";
+import { cloudflareTest, readD1Migrations } from "@cloudflare/vitest-plugin";
+import { defineConfig } from "vitest/config";
+
+const migrationsDir = fileURLToPath(new URL("../../migrations", import.meta.url));
+
+export default defineConfig({
+  plugins: [
+    cloudflareTest(async () => ({
+      wrangler: { configPath: "./wrangler.jsonc" },
+      miniflare: {
+        bindings: {
+          TEST_MIGRATIONS: await readD1Migrations(migrationsDir),
+          ACCESS_TEAM_DOMAIN: "https://team.test",
+          ACCESS_AUD: "test-aud",
+          DEV_AUTH_EMAIL: "dev@example.com",
+        },
+      },
+    })),
+  ],
+  test: {
+    setupFiles: ["./test/apply-migrations.ts"],
+  },
+});

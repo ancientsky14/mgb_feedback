@@ -1,0 +1,16 @@
+// For database commands only (migrations, execute, export); never deployed. Its default local
+// state (.wrangler/state here at the repo root) is the folder both apps' dev servers share.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "mgbr1-feedback-db",
+  "compatibility_date": "2026-09-23",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "feedback",
+      // Must equal the id in apps/public/wrangler.jsonc and apps/admin/wrangler.jsonc (a test checks).
+      "database_id": "00000000-0000-4000-8000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ]
+}

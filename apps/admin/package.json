@@ -1,0 +1,36 @@
+{
+  "name": "@feedback/admin",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "pretypecheck": "wrangler types --env-interface Env src/worker/worker-configuration.d.ts",
+    "typecheck": "tsc -p tsconfig.worker.json && tsc -p tsconfig.app.json",
+    "cf-typegen": "wrangler types --env-interface Env src/worker/worker-configuration.d.ts"
+  },
+  "dependencies": {
+    "@feedback/shared": "*",
+    "@tanstack/react-query": "^5.103.2",
+    "hono": "^4.13.8",
+    "jose": "^6.2.12",
+    "qrcode": "^1.5.4",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.57.3",
+    "@cloudflare/vitest-plugin": "^1.2.3",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/qrcode": "^1.5.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "tailwindcss": "^4.3.3",
+    "vite": "^8.3.0",
+    "vitest": "~4.1.11"
+  }
+}

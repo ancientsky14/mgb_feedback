@@ -1,0 +1,4 @@
+# Copy to .dev.vars for local development. .dev.vars is gitignored.
+# Signs you in as this staff email on localhost only (seeds/dev.sql creates it as an admin).
+# Ignored for any other hostname, so it cannot open the deployed Worker.
+DEV_AUTH_EMAIL=dev@example.com

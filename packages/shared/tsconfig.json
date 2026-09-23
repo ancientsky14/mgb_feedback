@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM"],
+    "types": []
+  },
+  "include": ["src/**/*.ts"],
+  // Tests that read files from disk run under Node types in tsconfig.node.json; the shared
+  // runtime code itself must stay free of Node APIs (it runs in Workers and browsers).
+  "exclude": ["src/**/*.node.test.ts"]
+}

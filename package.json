@@ -1,0 +1,29 @@
+{
+  "name": "mgb-ro1-feedback",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "eslint .",
+    "db:migrate:local": "wrangler d1 migrations apply feedback --local -c db.wrangler.jsonc",
+    "db:seed:local": "wrangler d1 execute feedback --local -c db.wrangler.jsonc --file seeds/dev.sql",
+    "dev:public": "npm run dev -w @feedback/public",
+    "dev:admin": "npm run dev -w @feedback/admin"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.11.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.70.1",
+    "wrangler": "^4.136.3"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
