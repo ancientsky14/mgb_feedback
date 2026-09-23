@@ -82,6 +82,23 @@ own hostname is localhost; production also fails closed (503) if the Access sett
 still cannot open it. Tested both ways.
 **Status:** active
 
+## 2026-09-23 — Deploy to the mgbr1.fad Cloudflare account, signed in with the FAD login
+
+**Decision:** Both Workers and the D1 database live in the mgbr1.fad Cloudflare account. Wrangler
+signs in with the shared FAD login (the owner's choice over inviting a personal email as a
+member). The account ID is pinned as `account_id` in all three Wrangler configs; `npm run
+deploy:*` and `db:migrate:remote` run `scripts/predeploy-check.mjs` first. A deployed public Worker
+refuses to serve with Cloudflare's Turnstile test keys.
+**Why:** An office-owned account keeps the system and its data out of any personal account. The
+pinned ID makes a command under the wrong login fail instead of deploying into another account
+(this PC's Wrangler was signed in to a personal account when checked). The pre-deploy check and
+the test-key refusal turn the likeliest first-deploy mistakes — placeholder ids, the always-pass
+test keys — into errors instead of a quietly unprotected survey.
+**Accepted cost:** Cloudflare's audit log shows every change as the FAD login. The app's own audit
+log still names each staff member (Access signs them in with their own emails). Mitigation: 2FA on
+the FAD Cloudflare login, a second person able to sign in, `wrangler logout` on shared PCs.
+**Status:** active — account ID to be pinned once Wrangler is signed in as mgbr1.fad.
+
 Format for new entries:
 
 ```markdown

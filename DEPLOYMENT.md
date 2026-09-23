@@ -4,22 +4,50 @@ Every step here is yours to run: nothing in this repo deploys itself. Run comman
 repo root unless a step says otherwise. Steps marked **(check)** rest on Cloudflare dashboard
 wording that could not be verified from here; follow the dashboard if it differs.
 
-## 0. Before anything is public
+The deploy scripts (`npm run deploy:public`, `npm run deploy:admin`, `npm run db:migrate:remote`)
+run `scripts/predeploy-check.mjs` first and refuse to touch Cloudflare while anything below is
+still missing — a placeholder database id, a missing account id, test Turnstile keys.
 
-These gate go-live, not the pilot (see the proposal and `.claude/TODOS.md`):
+## Before QR codes go up in public
 
-- An **office-owned Cloudflare account** (an office email, not a personal one) with at least two
-  administrators. Sign in once on this PC: `npx wrangler login`.
+These gate the public pilot and go-live, not staff testing (see the proposal and `.claude/TODOS.md`):
+
+- The RD's approval of the pilot.
 - The DPO's Privacy Impact Assessment and final privacy notice (`apps/public/src/app/Privacy.tsx`
   is a marked draft).
 - The current ARTA CSM form version (the one built in carries PSA approval ARTA-2420-03, which
   expired 31 July 2025).
 - The Citizen's Charter services list, entered under **Services & QR codes**.
 
+## 0. Sign Wrangler in to the office account (mgbr1.fad)
+
+The Workers and the database live in the **mgbr1.fad** Cloudflare account (FAD's office login),
+never in a personal account.
+
+1. **(check)** In the mgbr1.fad Cloudflare login, turn on two-factor authentication (My Profile →
+   Authentication), and make sure a second FAD person can sign in, for recovery.
+2. On this PC:
+
+   ```sh
+   npx wrangler logout     # drops any other login
+   npx wrangler login      # sign in as mgbr1.fad in the browser
+   npx wrangler whoami     # must list the FAD account
+   ```
+
+3. Pin that **Account ID** as `"account_id"` in `db.wrangler.jsonc`, `apps/public/wrangler.jsonc`
+   and `apps/admin/wrangler.jsonc` (same value in all three; a test checks). An account ID is an
+   identifier, not a password, so it is fine in the public repo. With it pinned, a command run under
+   the wrong login fails instead of landing in another account.
+4. On a PC others use, run `npx wrangler logout` when you finish: the saved login can deploy to the
+   office account.
+
+Cloudflare's own audit log shows every change as the FAD login. The app's audit log still names
+each staff member, because Access signs people in with their own emails.
+
 ## 1. Create the database
 
 ```sh
-npx wrangler d1 create feedback --location apac
+npx wrangler d1 create feedback --location apac -c db.wrangler.jsonc
 ```
 
 Copy the `database_id` it prints into **all three** of `db.wrangler.jsonc`,
@@ -29,7 +57,7 @@ match.
 Apply the schema:
 
 ```sh
-npx wrangler d1 migrations apply feedback --remote -c db.wrangler.jsonc
+npm run db:migrate:remote
 ```
 
 Check: `npx wrangler d1 execute feedback --remote -c db.wrangler.jsonc --command "SELECT code, status FROM instrument_versions"`
@@ -37,35 +65,36 @@ lists the two ARTA-2420-03 versions.
 
 ## 2. Turnstile (bot check on the public form)
 
-1. **(check)** Cloudflare dashboard → Turnstile → Add widget. Mode: Managed. Hostname: the public
-   Worker's address, `mgbr1-feedback-public.<your-subdomain>.workers.dev` (add the office domain
-   too once there is one).
-2. Put the **site key** in `apps/public/wrangler.jsonc` → `vars.TURNSTILE_SITE_KEY`, and the public
+1. **(check)** Find the account's workers.dev subdomain (Workers & Pages → Overview, "Subdomain").
+   The survey's address will be `mgbr1-feedback-public.<subdomain>.workers.dev`.
+2. **(check)** Cloudflare dashboard → Turnstile → Add widget. Mode: Managed. Hostname: that address
+   (add the office domain too once there is one).
+3. Put the **site key** in `apps/public/wrangler.jsonc` → `vars.TURNSTILE_SITE_KEY`, and the public
    hostname in `vars.TURNSTILE_EXPECTED_HOSTNAME`.
-3. Set the secrets:
+4. Set the secrets:
 
 ```sh
 npx wrangler secret put TURNSTILE_SECRET_KEY --cwd apps/public   # the widget's secret key
 npx wrangler secret put IP_HASH_SECRET --cwd apps/public         # any long random string; never reuse it elsewhere
 ```
 
-Without both secrets the public Worker refuses every submission (it fails closed).
+Without both secrets the public Worker refuses every submission (it fails closed). It also refuses
+to run on a deployed address with Cloudflare's test keys, which would switch the bot check off.
 
 ## 3. Deploy the public survey
 
 ```sh
-npm run build -w @feedback/public
-npx wrangler deploy --cwd apps/public
+npm run deploy:public
 ```
 
 Check: open `https://mgbr1-feedback-public.<subdomain>.workers.dev/` (the landing page) and
-`…/api/context/ZZZZZZ` (answers `{"error":"not_found"}`).
+`…/api/context/ZZZZZZ`: it answers `{"error":"not_found"}`. A `503` there means the Worker still
+has a test key or a missing secret.
 
 ## 4. Deploy the admin side and put it behind Access
 
 ```sh
-npm run build -w @feedback/admin
-npx wrangler deploy --cwd apps/admin
+npm run deploy:admin
 ```
 
 Then, before anyone else learns the address:
@@ -76,7 +105,7 @@ Then, before anyone else learns the address:
 2. **(check)** Zero Trust → Access → Applications → that application: copy the **Application
    Audience (AUD) tag**, and note your team domain, `https://<team>.cloudflareaccess.com`.
 3. Put both in `apps/admin/wrangler.jsonc` → `vars.ACCESS_AUD` and `vars.ACCESS_TEAM_DOMAIN`, then
-   rebuild and deploy the admin again (as above).
+   run `npm run deploy:admin` again.
 
 Until step 3 is done the admin API answers `503 access_not_configured` to everyone: that is
 deliberate. Preview URLs are switched off on both Workers so Access has no side door.
@@ -132,12 +161,13 @@ When it changes: update `public_base_url`, the Turnstile widget's hostnames and
 ## Updating
 
 ```sh
-npm test && npm run typecheck && npm run lint
-npx wrangler d1 migrations apply feedback --remote -c db.wrangler.jsonc   # only if migrations/ changed
-npm run build -w @feedback/public
-npx wrangler deploy --cwd apps/public
-npm run build -w @feedback/admin
-npx wrangler deploy --cwd apps/admin
+npm test
+npm run typecheck
+npm run lint
+npm run db:migrate:remote   # only if migrations/ changed
+npm run deploy:public
+npm run deploy:admin
 ```
 
-Apply migrations before deploying code that needs them.
+Apply migrations before deploying code that needs them. Signed in to Wrangler as someone other
+than mgbr1.fad? The pinned `account_id` makes the command fail rather than deploy elsewhere.

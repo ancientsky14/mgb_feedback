@@ -12,6 +12,9 @@
     "lint": "eslint .",
     "db:migrate:local": "wrangler d1 migrations apply feedback --local -c db.wrangler.jsonc",
     "db:seed:local": "wrangler d1 execute feedback --local -c db.wrangler.jsonc --file seeds/dev.sql",
+    "db:migrate:remote": "node scripts/predeploy-check.mjs db && wrangler d1 migrations apply feedback --remote -c db.wrangler.jsonc",
+    "deploy:public": "node scripts/predeploy-check.mjs public && npm run build -w @feedback/public && wrangler deploy --cwd apps/public",
+    "deploy:admin": "node scripts/predeploy-check.mjs admin && npm run build -w @feedback/admin && wrangler deploy --cwd apps/admin",
     "dev:public": "npm run dev -w @feedback/public",
     "dev:admin": "npm run dev -w @feedback/admin"
   },

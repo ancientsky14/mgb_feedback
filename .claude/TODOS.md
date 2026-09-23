@@ -24,7 +24,9 @@ Check the code before trusting this list.
 - [ ] Look at both UIs in a real browser and on a mid-range Android phone (Messenger and QR-scanner
       in-app browsers); axe/WCAG 2.2 AA pass; Lighthouse on slow 4G.
 - [ ] XLSX export of the ARTA report (CSV and print-to-PDF exist).
-- [ ] Deploy per `DEPLOYMENT.md`; first restore drill; schedule `scripts/backup.ps1`.
+- [ ] Wrangler signed in as mgbr1.fad → pin `account_id` in the three configs.
+- [ ] Deploy the staff-only pilot per `DEPLOYMENT.md` (mgbr1.fad account, workers.dev); first
+      restore drill; schedule `scripts/backup.ps1`.
 - [ ] Pilot at the PACD (Q4 2026) alongside the current method; reconcile counts.
 
 ## Phase 2 — integrity and case register

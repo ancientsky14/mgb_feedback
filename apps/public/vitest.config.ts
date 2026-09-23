@@ -11,6 +11,8 @@ export default defineConfig({
       miniflare: {
         bindings: {
           TEST_MIGRATIONS: await readD1Migrations(migrationsDir),
+          // Not Cloudflare's test keys: tests run on a non-localhost hostname, where those are refused.
+          TURNSTILE_SITE_KEY: "0x4AAAAAAAtest-site-key",
           TURNSTILE_SECRET_KEY: "test-turnstile-secret",
           IP_HASH_SECRET: "test-ip-hash-secret",
         },

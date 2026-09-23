@@ -13,6 +13,11 @@ export default defineConfig(
     rules: reactHooks.configs.recommended.rules,
   },
   {
+    // Plain Node scripts (scripts/*.mjs) run outside Workers and browsers.
+    files: ["scripts/**/*.mjs"],
+    languageOptions: { globals: { process: "readonly", console: "readonly", URL: "readonly" } },
+  },
+  {
     rules: {
       "@typescript-eslint/no-unused-vars": [
         "error",

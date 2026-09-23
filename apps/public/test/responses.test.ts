@@ -216,6 +216,36 @@ describe("POST /api/responses", () => {
   });
 });
 
+describe("Cloudflare's Turnstile test keys", () => {
+  const TEST_SITE_KEY = "1x00000000000000000000AA";
+  const TEST_SECRET = "1x0000000000000000000000000000000AA";
+  const DEPLOYED = "https://mgbr1-feedback-public.example.workers.dev";
+  const app = () => createApp({ verifyTurnstile: async () => ({ ok: true, codes: [] }), now: () => new Date() });
+
+  it("stop a deployed Worker from serving the form with the test site key", async () => {
+    const res = await app().request(`${DEPLOYED}/api/context/PACD01`, {}, { ...env, TURNSTILE_SITE_KEY: TEST_SITE_KEY });
+    expect(res.status).toBe(503);
+  });
+
+  it("stop a deployed Worker from accepting submissions with the always-pass secret", async () => {
+    const res = await app().request(
+      `${DEPLOYED}/api/responses`,
+      { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(submission()) },
+      { ...env, TURNSTILE_SECRET_KEY: TEST_SECRET },
+    );
+    expect(res.status).toBe(503);
+  });
+
+  it("still work on localhost, for development", async () => {
+    const res = await app().request("http://localhost:5173/api/context/PACD01", {}, {
+      ...env,
+      TURNSTILE_SITE_KEY: TEST_SITE_KEY,
+      TURNSTILE_SECRET_KEY: TEST_SECRET,
+    });
+    expect(res.status).toBe(200);
+  });
+});
+
 describe("database guards", () => {
   it("refuses to delete a submitted response", async () => {
     const { publicRef } = (await (await post(submission())).json()) as { publicRef: string };

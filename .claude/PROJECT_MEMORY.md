@@ -14,7 +14,11 @@ management proposal for the RD, CART and DPO is a Claude doc:
 <https://claude.ai/artifact/SwnJs7KwaTzRpXCGZBch4U> (opens only for people it is shared with).
 
 Repository: <https://github.com/ancientsky14/mgb_feedback> — **public**. See the hard rule in
-`AGENTS.md` about what may never be committed.
+`AGENTS.md` about what may never be committed. CI (lint, typecheck, tests) runs on every push.
+
+Deployment target: the **mgbr1.fad** Cloudflare account (FAD's office login), pilot on
+workers.dev. Deploy only through `npm run deploy:public|admin` and `npm run db:migrate:remote`,
+which refuse to run while configs still hold placeholders or test keys (`scripts/predeploy-check.mjs`).
 
 ## Current state (2026-09-23)
 

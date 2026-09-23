@@ -41,6 +41,21 @@ async function limited(limiter: RateLimit | undefined, key: string): Promise<boo
   return !success;
 }
 
+/** Cloudflare's published Turnstile test keys, site keys and secrets alike ("1x000…AA" and friends). */
+const TURNSTILE_TEST_KEY = /^[123]x0{20,}[A-F]{2}$/;
+const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
+
+/**
+ * True on a deployed host still carrying a test key. The always-pass keys would switch the bot
+ * check off without anyone noticing, so the Worker refuses to serve rather than run unprotected.
+ */
+function turnstileTestKeysDeployed(url: string, env: PublicEnv): boolean {
+  if (LOCAL_HOSTS.has(new URL(url).hostname)) return false;
+  const found = [env.TURNSTILE_SITE_KEY, env.TURNSTILE_SECRET_KEY].some((key) => TURNSTILE_TEST_KEY.test(key ?? ""));
+  if (found) console.error(JSON.stringify({ msg: "turnstile_test_keys_in_deployment", fix: "set the real site key and secret" }));
+  return found;
+}
+
 export function createApp(deps: PublicDeps) {
   const app = new Hono<{ Bindings: PublicEnv }>();
 
@@ -54,6 +69,7 @@ export function createApp(deps: PublicDeps) {
     if (await limited(c.env.READ_LIMITER, `read:${clientIp(c.req.raw.headers) ?? "unknown"}`)) {
       return c.json({ error: "rate_limited" }, 429);
     }
+    if (turnstileTestKeysDeployed(c.req.url, c.env)) return c.json({ error: "unavailable" }, 503);
     const code = c.req.param("code").toUpperCase();
     if (!isServicePointCode(code)) return c.json({ error: "not_found" }, 404);
 
@@ -93,6 +109,7 @@ export function createApp(deps: PublicDeps) {
     const secret = c.env.TURNSTILE_SECRET_KEY;
     const ipSecret = c.env.IP_HASH_SECRET;
     if (!secret || !ipSecret) return c.json({ error: "unavailable" }, 503);
+    if (turnstileTestKeysDeployed(c.req.url, c.env)) return c.json({ error: "unavailable" }, 503);
 
     if (Number(c.req.header("Content-Length") ?? 0) > MAX_BODY_BYTES) return c.json({ error: "too_large" }, 413);
     const raw = await c.req.arrayBuffer();

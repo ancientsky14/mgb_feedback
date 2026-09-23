@@ -51,6 +51,11 @@ npm run db:seed:local    # dev data: placeholder services, service points, dev a
 npm run dev:public       # http://localhost:5173/q/PACD01
 npm run dev:admin        # http://localhost:5174 (signed in as DEV_AUTH_EMAIL, localhost only)
 pwsh scripts/backup.ps1 -Local   # rehearse the verified backup against local data
+
+# User-run only (they touch Cloudflare); each runs scripts/predeploy-check.mjs first:
+npm run db:migrate:remote
+npm run deploy:public
+npm run deploy:admin
 ```
 
 Before `dev`, copy each app's `.dev.vars.example` to `.dev.vars`.
