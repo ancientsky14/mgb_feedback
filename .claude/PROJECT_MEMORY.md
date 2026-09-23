@@ -16,8 +16,10 @@ management proposal for the RD, CART and DPO is a Claude doc:
 Repository: <https://github.com/ancientsky14/mgb_feedback> — **public**. See the hard rule in
 `AGENTS.md` about what may never be committed. CI (lint, typecheck, tests) runs on every push.
 
-Deployment target: the **mgbr1.fad** Cloudflare account (FAD's office login), pilot on
-workers.dev. Deploy only through `npm run deploy:public|admin` and `npm run db:migrate:remote`,
+Deployment target: the **mgbr1.fad** Cloudflare account (FAD's office login; workers.dev
+subdomain `mgbr1-fad`). Pilot addresses: survey `https://feedback.mgbr1-fad.workers.dev`
+(Worker `feedback`), staff side `https://feedback-admin.mgbr1-fad.workers.dev` (Worker
+`feedback-admin`). D1 `feedback` (APAC) holds the schema from 0001. Deploy only through `npm run deploy:public|admin` and `npm run db:migrate:remote`,
 which refuse to run while configs still hold placeholders or test keys (`scripts/predeploy-check.mjs`).
 
 ## Current state (2026-09-23)

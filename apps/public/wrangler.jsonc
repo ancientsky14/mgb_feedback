@@ -2,7 +2,8 @@
 // code at all — that lives in apps/admin, a separate Worker behind Cloudflare Access.
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
-  "name": "mgbr1-feedback-public",
+  // Served at https://feedback.mgbr1-fad.workers.dev (the mgbr1.fad account's workers.dev subdomain).
+  "name": "feedback",
   // The mgbr1.fad Cloudflare account (FAD's office login). Same value in all three configs.
   "account_id": "e4fa12ea485dab2335b662d716736736",
   "main": "src/worker/index.ts",
@@ -33,8 +34,8 @@
     // The production Turnstile widget (mgbr1.fad account). Public by design: every browser
     // receives it. Local development overrides it with Cloudflare's test key in .dev.vars.
     "TURNSTILE_SITE_KEY": "0x4AAAAAAFAvsuFdzLRbT7Nw",
-    // Set to the production hostname so Siteverify results from any other host are refused.
-    "TURNSTILE_EXPECTED_HOSTNAME": ""
+    // Siteverify results from any other host are refused. Must be one of the widget's hostnames.
+    "TURNSTILE_EXPECTED_HOSTNAME": "feedback.mgbr1-fad.workers.dev"
   }
   // Secrets (never in this file): TURNSTILE_SECRET_KEY, IP_HASH_SECRET — see DEPLOYMENT.md.
 }

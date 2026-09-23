@@ -84,7 +84,7 @@ describe("sign-in", () => {
 
   it("honours the development sign-in only on localhost", async () => {
     expect((await api("/api/me", { base: "http://localhost:5174" })).status).toBe(200);
-    expect((await api("/api/me", { base: "https://mgbr1-feedback-admin.example.workers.dev" })).status).toBe(401);
+    expect((await api("/api/me", { base: "https://feedback-admin.example.workers.dev" })).status).toBe(401);
   });
 
   it("fails closed when Access is not configured", async () => {

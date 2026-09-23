@@ -2,7 +2,8 @@
 // code verifies the Access token itself too, so a misconfigured Access policy fails closed.
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
-  "name": "mgbr1-feedback-admin",
+  // Served at https://feedback-admin.mgbr1-fad.workers.dev, behind Cloudflare Access.
+  "name": "feedback-admin",
   // The mgbr1.fad Cloudflare account (FAD's office login). Same value in all three configs.
   "account_id": "e4fa12ea485dab2335b662d716736736",
   "main": "src/worker/index.ts",

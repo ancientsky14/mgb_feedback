@@ -65,31 +65,29 @@ lists the two ARTA-2420-03 versions.
 
 ## 2. Turnstile (bot check on the public form)
 
-1. **(check)** Find the account's workers.dev subdomain (Workers & Pages → Overview, "Subdomain").
-   The survey's address will be `mgbr1-feedback-public.<subdomain>.workers.dev`.
-2. **(check)** Cloudflare dashboard → Turnstile → Add widget. Mode: Managed. Hostname: that address
-   (add the office domain too once there is one).
-3. Put the **site key** in `apps/public/wrangler.jsonc` → `vars.TURNSTILE_SITE_KEY`, and the public
-   hostname in `vars.TURNSTILE_EXPECTED_HOSTNAME`.
-4. Set the secrets:
+The mgbr1.fad account's workers.dev subdomain is `mgbr1-fad`, so a Worker named `feedback` lives
+at `feedback.mgbr1-fad.workers.dev` (a Worker's address is `<name>.<subdomain>.workers.dev`).
+
+1. **(check)** Cloudflare dashboard → Turnstile → the widget → Hostnames: exactly
+   `feedback.mgbr1-fad.workers.dev` (add the office domain too once there is one). Mode: Managed.
+2. The **site key** goes in `apps/public/wrangler.jsonc` → `vars.TURNSTILE_SITE_KEY`, and the same
+   hostname in `vars.TURNSTILE_EXPECTED_HOSTNAME` (both done).
+
+## 3. Deploy the public survey, then set its secrets
 
 ```sh
+npm run deploy:public
 npx wrangler secret put TURNSTILE_SECRET_KEY --cwd apps/public   # the widget's secret key
 npx wrangler secret put IP_HASH_SECRET --cwd apps/public         # any long random string; never reuse it elsewhere
 ```
 
-Without both secrets the public Worker refuses every submission (it fails closed). It also refuses
-to run on a deployed address with Cloudflare's test keys, which would switch the bot check off.
+Deploy first: `secret put` on a Worker that does not exist yet creates an empty one under that
+name. Until both secrets are set the survey refuses every submission (it fails closed); it also
+refuses to run on a deployed address with Cloudflare's test keys.
 
-## 3. Deploy the public survey
-
-```sh
-npm run deploy:public
-```
-
-Check: open `https://mgbr1-feedback-public.<subdomain>.workers.dev/` (the landing page) and
-`…/api/context/ZZZZZZ`: it answers `{"error":"not_found"}`. A `503` there means the Worker still
-has a test key or a missing secret.
+Check: open `https://feedback.mgbr1-fad.workers.dev/` (the landing page) and
+`…/api/context/ZZZZZZ`: it answers `{"error":"not_found"}`. A `503` there means a secret is still
+missing or a test key is set.
 
 ## 4. Deploy the admin side and put it behind Access
 
@@ -99,7 +97,7 @@ npm run deploy:admin
 
 Then, before anyone else learns the address:
 
-1. **(check)** Workers & Pages → `mgbr1-feedback-admin` → Settings → Domains & Routes →
+1. **(check)** Workers & Pages → `feedback-admin` → Settings → Domains & Routes →
    workers.dev → **Enable Cloudflare Access**, then **Manage Cloudflare Access**: allow only the
    named staff emails (one-time PIN to email, or Google). Set the session length to 8–12 hours.
 2. **(check)** Zero Trust → Access → Applications → that application: copy the **Application
@@ -125,8 +123,8 @@ Use the exact email you sign in to Access with, in lower case. Add everyone else
 
 In the admin side:
 
-1. **Staff & settings** → `public_base_url` = the public Worker's address (`https://…workers.dev`
-   for the pilot). Confirm `contact_retention_days` with the DPO.
+1. **Staff & settings** → `public_base_url` = `https://feedback.mgbr1-fad.workers.dev` for the
+   pilot. Confirm `contact_retention_days` with the DPO.
 2. **Services & QR codes** → Divisions, then the Citizen's Charter services. Untick “placeholder”.
 3. **QR codes** → one per desk or counter → **Poster** → print. On a workers.dev address, use
    temporary A4 signage only.

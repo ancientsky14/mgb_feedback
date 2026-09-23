@@ -226,7 +226,7 @@ describe("POST /api/responses", () => {
 describe("Cloudflare's Turnstile test keys", () => {
   const TEST_SITE_KEY = "1x00000000000000000000AA";
   const TEST_SECRET = "1x0000000000000000000000000000000AA";
-  const DEPLOYED = "https://mgbr1-feedback-public.example.workers.dev";
+  const DEPLOYED = "https://feedback.example.workers.dev";
   const app = () => createApp({ verifyTurnstile: async () => ({ ok: true, codes: [] }), now: () => new Date() });
 
   it("stop a deployed Worker from serving the form with the test site key", async () => {
