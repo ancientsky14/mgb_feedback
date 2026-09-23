@@ -3,6 +3,8 @@
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "mgbr1-feedback-public",
+  // The mgbr1.fad Cloudflare account (FAD's office login). Same value in all three configs.
+  "account_id": "e4fa12ea485dab2335b662d716736736",
   "main": "src/worker/index.ts",
   "compatibility_date": "2026-09-23",
   "observability": { "enabled": true },

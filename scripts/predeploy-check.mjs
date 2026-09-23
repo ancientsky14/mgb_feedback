@@ -32,7 +32,7 @@ function sameAcross(key, missingHelp) {
 sameAcross("account_id", "Sign Wrangler in to the mgbr1.fad account and pin its ID in all three configs (DEPLOYMENT.md step 0).");
 const databaseId = sameAcross("database_id", "(DEPLOYMENT.md step 1).");
 if (databaseId === PLACEHOLDER_DATABASE) {
-  stop.push("database_id is still the placeholder: run `npx wrangler d1 create feedback --location apac` and paste the id into all three configs (DEPLOYMENT.md step 1).");
+  stop.push("database_id is still the placeholder: run `npx wrangler d1 create feedback --location apac -c db.wrangler.jsonc` and paste the id into all three configs (DEPLOYMENT.md step 1).");
 }
 
 if (target === "public") {
