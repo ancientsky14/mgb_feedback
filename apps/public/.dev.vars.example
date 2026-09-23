@@ -1,4 +1,8 @@
 # Copy to .dev.vars for local development. .dev.vars is gitignored.
-# Cloudflare's always-pass Turnstile test secret; the matching site key is in wrangler.jsonc.
+# Cloudflare's always-pass Turnstile test keys: the production widget only works on its own
+# hostname, so localhost uses these. The deployed Worker refuses them on any other host.
+TURNSTILE_SITE_KEY=1x00000000000000000000AA
 TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA
+# Test tokens do not carry the production hostname, so the hostname check is off locally.
+TURNSTILE_EXPECTED_HOSTNAME=
 IP_HASH_SECRET=local-development-only

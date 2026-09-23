@@ -14,6 +14,8 @@ export default defineConfig({
           // Not Cloudflare's test keys: tests run on a non-localhost hostname, where those are refused.
           TURNSTILE_SITE_KEY: "0x4AAAAAAAtest-site-key",
           TURNSTILE_SECRET_KEY: "test-turnstile-secret",
+          // The mocked Siteverify reports this hostname unless a test says otherwise.
+          TURNSTILE_EXPECTED_HOSTNAME: "feedback.test",
           IP_HASH_SECRET: "test-ip-hash-secret",
         },
       },

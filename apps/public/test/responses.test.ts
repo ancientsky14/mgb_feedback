@@ -8,10 +8,10 @@ const BASE = "https://feedback.test";
 const SITEVERIFY = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 
 // Siteverify is mocked: the Worker runs in the test isolate, so a spy on fetch reaches it.
-let siteverifyResult: Record<string, unknown> = { success: true, hostname: "", action: "" };
+let siteverifyResult: Record<string, unknown> = { success: true, hostname: "feedback.test", action: "" };
 const realFetch = globalThis.fetch;
 beforeEach(() => {
-  siteverifyResult = { success: true, hostname: "", action: "" };
+  siteverifyResult = { success: true, hostname: "feedback.test", action: "" };
   vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
     const url = input instanceof Request ? input.url : String(input);
     if (url === SITEVERIFY) return Response.json(siteverifyResult);
@@ -125,8 +125,15 @@ describe("POST /api/responses", () => {
   });
 
   it("refuses a token minted for another widget action", async () => {
-    siteverifyResult = { success: true, hostname: "", action: "login" };
+    siteverifyResult = { success: true, hostname: "feedback.test", action: "login" };
     expect((await post(submission())).status).toBe(403);
+  });
+
+  it("refuses a token solved on another hostname", async () => {
+    siteverifyResult = { success: true, hostname: "copycat.example", action: "" };
+    const s = submission();
+    expect((await post(s)).status).toBe(403);
+    expect(await env.DB.prepare(`SELECT 1 FROM responses WHERE submission_id = ?1`).bind(s.submissionId).first()).toBeNull();
   });
 
   it("refuses when Siteverify cannot be reached", async () => {

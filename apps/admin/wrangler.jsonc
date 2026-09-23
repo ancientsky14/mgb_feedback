@@ -18,8 +18,8 @@
     {
       "binding": "DB",
       "database_name": "feedback",
-      // Same database as apps/public. Replace with the id from `wrangler d1 create feedback`.
-      "database_id": "00000000-0000-4000-8000-000000000000",
+      // Same database as apps/public and db.wrangler.jsonc (mgbr1.fad account, APAC).
+      "database_id": "347573b7-51c3-4716-893c-93e13847ecef",
       "migrations_dir": "../../migrations"
     }
   ],

@@ -17,8 +17,8 @@
     {
       "binding": "DB",
       "database_name": "feedback",
-      // Same database as apps/admin. Replace with the id from `wrangler d1 create feedback` (DEPLOYMENT.md).
-      "database_id": "00000000-0000-4000-8000-000000000000",
+      // Same database as apps/admin and db.wrangler.jsonc (mgbr1.fad account, APAC).
+      "database_id": "347573b7-51c3-4716-893c-93e13847ecef",
       "migrations_dir": "../../migrations"
     }
   ],
@@ -30,8 +30,9 @@
   ],
   "vars": {
     "OFFICE_NAME": "Mines and Geosciences Bureau Regional Office No. I",
-    // Cloudflare's always-pass test site key. Replace with the production key before deploying.
-    "TURNSTILE_SITE_KEY": "1x00000000000000000000AA",
+    // The production Turnstile widget (mgbr1.fad account). Public by design: every browser
+    // receives it. Local development overrides it with Cloudflare's test key in .dev.vars.
+    "TURNSTILE_SITE_KEY": "0x4AAAAAAFAvsuFdzLRbT7Nw",
     // Set to the production hostname so Siteverify results from any other host are refused.
     "TURNSTILE_EXPECTED_HOSTNAME": ""
   }
