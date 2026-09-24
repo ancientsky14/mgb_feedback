@@ -38,9 +38,10 @@ function loadScript(): Promise<void> {
  */
 export function Turnstile({ siteKey, onToken, resetKey }: { siteKey: string; onToken: (token: string | null) => void; resetKey: number }) {
   const container = useRef<HTMLDivElement>(null);
-  // Which render attempt failed to load; a new resetKey starts clean without resetting state here.
-  const [failedAttempt, setFailedAttempt] = useState<number | null>(null);
-  const failed = failedAttempt === resetKey;
+  // Which render attempt failed and how ("load" or Turnstile's error code); a new resetKey starts
+  // clean without resetting state here.
+  const [failure, setFailure] = useState<{ attempt: number; code: string } | null>(null);
+  const failed = failure?.attempt === resetKey ? failure.code : null;
 
   useEffect(() => {
     let widgetId: string | undefined;
@@ -53,13 +54,21 @@ export function Turnstile({ siteKey, onToken, resetKey }: { siteKey: string; onT
           action: TURNSTILE_ACTION,
           appearance: "interaction-only",
           "refresh-expired": "auto",
-          callback: (token: string) => onToken(token),
+          callback: (token: string) => {
+            onToken(token);
+            // Turnstile retries some errors itself; a later success clears the message.
+            if (!cancelled) setFailure(null);
+          },
           "expired-callback": () => onToken(null),
-          "error-callback": () => onToken(null),
+          // Without this the invisible widget fails silently and the button waits forever.
+          "error-callback": (code?: string) => {
+            onToken(null);
+            if (!cancelled) setFailure({ attempt: resetKey, code: String(code ?? "unknown") });
+          },
         });
       })
       .catch(() => {
-        if (!cancelled) setFailedAttempt(resetKey);
+        if (!cancelled) setFailure({ attempt: resetKey, code: "load" });
       });
     return () => {
       cancelled = true;
@@ -72,8 +81,9 @@ export function Turnstile({ siteKey, onToken, resetKey }: { siteKey: string; onT
       <div ref={container} />
       {failed && (
         <p role="alert" className="mt-2 text-sm font-medium text-red-800">
-          The security check could not load. Please check your connection and reload the page, or ask the desk for a
-          paper form.
+          The security check could not {failed === "load" ? "load" : "finish"}. Please check your connection and reload
+          the page, or ask the desk for a paper form.
+          {failed !== "load" && <span className="mt-1 block text-xs font-normal text-slate-600">Error code: {failed}</span>}
         </p>
       )}
     </div>
