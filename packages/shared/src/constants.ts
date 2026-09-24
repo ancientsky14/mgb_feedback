@@ -25,6 +25,17 @@ export type Role = (typeof ROLES)[number];
 export const COMMENT_VISIBILITIES = ["cart_only", "released"] as const;
 export type CommentVisibility = (typeof COMMENT_VISIBILITIES)[number];
 
+/** Why a response is left out of reports. The row itself stays: responses are official records. */
+export const EXCLUSION_REASONS = ["staff_test", "spam", "duplicate", "other"] as const;
+export type ExclusionReason = (typeof EXCLUSION_REASONS)[number];
+export const EXCLUSION_REASON_LABELS: Record<ExclusionReason, string> = {
+  staff_test: "Staff test",
+  spam: "Spam or bot",
+  duplicate: "Duplicate",
+  other: "Other",
+};
+export const EXCLUSION_NOTE_MAX_LENGTH = 200;
+
 export const IMPORT_KINDS = ["online_csv", "paper_tally"] as const;
 export type ImportKind = (typeof IMPORT_KINDS)[number];
 

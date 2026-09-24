@@ -46,7 +46,8 @@ export async function loadReport(db: D1Database, from: string, to: string, scope
         `SELECT r.service_id, r.channel, r.client_type, r.sex, r.age, r.region, r.cc1, r.cc2, r.cc3,
                 r.sqd0, r.sqd1, r.sqd2, r.sqd3, r.sqd4, r.sqd5, r.sqd6, r.sqd7, r.sqd8
            FROM responses r JOIN services s ON s.id = r.service_id
-          WHERE r.transaction_date BETWEEN ?1 AND ?2 AND (?3 IS NULL OR s.division_id = ?3)`,
+          WHERE r.transaction_date BETWEEN ?1 AND ?2 AND (?3 IS NULL OR s.division_id = ?3)
+            AND r.excluded_at IS NULL`,
       )
       .bind(firstDay, lastDay, scope.divisionId),
     db

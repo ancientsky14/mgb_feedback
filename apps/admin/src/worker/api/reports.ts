@@ -1,11 +1,14 @@
 import {
-  formatPercent,
+  csvCells,
+  detailRows,
   isIsoMonth,
   isPsaExpired,
   getInstrument,
   manilaDate,
-  SQD_CODES,
+  summaryRows,
   toCsv,
+  toXlsx,
+  XLSX_CONTENT_TYPE,
   type CsmReport,
 } from "@feedback/shared";
 import type { Hono } from "hono";
@@ -67,9 +70,9 @@ export function reportRoutes(app: Hono<AdminHono>) {
       c.env.DB.prepare(`SELECT code FROM instrument_versions WHERE status = 'active'`),
       c.env.DB.prepare(`SELECT count(*) AS n FROM services WHERE active = 1 AND is_placeholder = 1`),
       c.env.DB.prepare(
-        `SELECT count(*) AS n FROM responses WHERE suggestion IS NOT NULL AND comment_visibility = 'cart_only'`,
+        `SELECT count(*) AS n FROM responses WHERE suggestion IS NOT NULL AND comment_visibility = 'cart_only' AND excluded_at IS NULL`,
       ),
-      c.env.DB.prepare(`SELECT count(*) AS n FROM responses WHERE suspect_burst = 1 AND transaction_date >= ?1`).bind(
+      c.env.DB.prepare(`SELECT count(*) AS n FROM responses WHERE suspect_burst = 1 AND excluded_at IS NULL AND transaction_date >= ?1`).bind(
         `${month}-01`,
       ),
     ]);
@@ -106,7 +109,7 @@ export function reportRoutes(app: Hono<AdminHono>) {
     const staff = c.get("staff");
     const report = await loadReport(c.env.DB, period.from, period.to, scopeFor(staff, divisionParam(c)));
     const detail = c.req.query("kind") === "detail";
-    const rows: unknown[][] = detail ? detailRows(report) : summaryRows(report);
+    const rows = csvCells(detail ? detailRows(report) : summaryRows(report));
     await auditStatement(c.env.DB, {
       actor: staff.email,
       action: detail ? "export.csm_detail_csv" : "export.csm_summary_csv",
@@ -120,64 +123,28 @@ export function reportRoutes(app: Hono<AdminHono>) {
       },
     });
   });
-}
 
-function summaryRows(report: CsmReport): unknown[][] {
-  const header = [
-    "Division",
-    "Service",
-    "Respondents",
-    "Transactions",
-    "Response rate",
-    ...SQD_CODES.map((c) => c.toUpperCase()),
-    "Overall (SQD1-8)",
-    "Rating",
-    "CC awareness",
-    "CC visibility",
-    "CC helpfulness",
-  ];
-  const line = (division: string, name: string, t: CsmReport["office"] | CsmReport["services"][number]) => [
-    division,
-    name,
-    t.respondents,
-    t.transactions ?? "",
-    formatPercent(t.responseRate),
-    ...SQD_CODES.map((code) => formatPercent(t.sqd[code].score.hundredths)),
-    formatPercent(t.overall.hundredths),
-    t.rating ?? "",
-    formatPercent(t.ccSummary.awareness.hundredths),
-    formatPercent(t.ccSummary.visibility.hundredths),
-    formatPercent(t.ccSummary.helpfulness.hundredths),
-  ];
-  return [
-    header,
-    ...report.services.map((s) =>
-      s.suppressed ? [s.service.divisionCode, s.service.name, "fewer than 5"] : line(s.service.divisionCode, s.service.name, s),
-    ),
-    line("", "All services", report.office),
-  ];
-}
-
-function detailRows(report: CsmReport): unknown[][] {
-  const rows: unknown[][] = [["Division", "Service", "Item", "SD", "D", "N", "A", "SA", "N/A", "Blank", "Score"]];
-  for (const s of report.services) {
-    if (s.suppressed) continue;
-    for (const code of SQD_CODES) {
-      const { counts, score } = s.sqd[code];
-      rows.push([
-        s.service.divisionCode,
-        s.service.name,
-        code.toUpperCase(),
-        counts.sd,
-        counts.d,
-        counts.n,
-        counts.a,
-        counts.sa,
-        counts.na,
-        counts.blank,
-        formatPercent(score.hundredths),
-      ]);
-    }
-  }
-  return rows;
+  // The same report as the CSVs, both tables in one workbook, with real percentages.
+  route(app, "GET", "/api/reports/csm.xlsx", ALL_ROLES, async (c) => {
+    const period = periodFrom(c);
+    if (!period) return c.json({ error: "invalid_period" }, 400);
+    const staff = c.get("staff");
+    const report = await loadReport(c.env.DB, period.from, period.to, scopeFor(staff, divisionParam(c)));
+    const workbook = toXlsx([
+      { name: "Summary", rows: summaryRows(report) },
+      { name: "SQD detail", rows: detailRows(report) },
+    ]);
+    await auditStatement(c.env.DB, {
+      actor: staff.email,
+      action: "export.csm_xlsx",
+      detail: { from: period.from, to: period.to },
+    }).run();
+    return new Response(workbook, {
+      headers: {
+        "Content-Type": XLSX_CONTENT_TYPE,
+        "Content-Disposition": `attachment; filename="csm-${period.from}-to-${period.to}.xlsx"`,
+        "Cache-Control": "no-store",
+      },
+    });
+  });
 }

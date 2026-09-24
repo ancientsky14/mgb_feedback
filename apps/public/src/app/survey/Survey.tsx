@@ -136,6 +136,10 @@ function SurveyForm({ context, instrument }: { context: FormContext; instrument:
     heading.current?.focus();
   }, [step]);
 
+  useEffect(() => {
+    document.documentElement.lang = answers.lang;
+  }, [answers.lang]);
+
   const onToken = useCallback((value: string | null) => setToken(value), []);
   const t = (text: Localized) => localize(text, answers.lang);
   const update = (patch: Partial<Answers>) => setAnswers((a) => ({ ...a, ...patch }));
@@ -211,11 +215,11 @@ function SurveyForm({ context, instrument }: { context: FormContext; instrument:
       <p className="text-sm text-slate-600">{context.servicePoint.label}</p>
 
       {stepNumber > 0 && (
-        <div className="mt-4" aria-hidden="true">
+        <div className="mt-4">
           <p className="text-sm text-slate-600">
             Step {stepNumber} of {NUMBERED_STEPS.length}
           </p>
-          <div className="mt-1 h-2 rounded-full bg-slate-200">
+          <div className="mt-1 h-2 rounded-full bg-slate-200" aria-hidden="true">
             <div className="h-2 rounded-full bg-emerald-700" style={{ width: `${(stepNumber / NUMBERED_STEPS.length) * 100}%` }} />
           </div>
         </div>
@@ -230,7 +234,7 @@ function SurveyForm({ context, instrument }: { context: FormContext; instrument:
           <p className="mt-4 rounded-lg bg-emerald-50 p-4 text-sm text-emerald-950">
             Your answers are anonymous unless you choose to give an email address. We do not store your IP address.{" "}
             <a href="/privacy" target="_blank" rel="noopener" className="font-medium underline">
-              Read the privacy notice
+              Read the privacy notice<span className="sr-only"> (opens in a new tab)</span>
             </a>
             .
           </p>
@@ -489,7 +493,6 @@ function SurveyForm({ context, instrument }: { context: FormContext; instrument:
               className={buttonPrimary + " flex-1"}
               onClick={() => void submit()}
               disabled={!token || submitting}
-              aria-disabled={!token || submitting}
             >
               {submitting ? "Sending…" : token ? "Submit" : "Waiting for security check…"}
             </button>
@@ -563,7 +566,7 @@ export function Page({ children }: { children: ReactNode }) {
 }
 
 const buttonPrimary =
-  "min-h-12 rounded-lg bg-emerald-800 px-5 py-3 text-base font-semibold text-white hover:bg-emerald-900 disabled:cursor-not-allowed disabled:bg-slate-400";
+  "min-h-12 rounded-lg bg-emerald-800 px-5 py-3 text-base font-semibold text-white hover:bg-emerald-900 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-800";
 const buttonSecondary =
   "min-h-12 rounded-lg border border-slate-400 bg-white px-5 py-3 text-base font-semibold text-slate-800 hover:bg-slate-100 disabled:opacity-60";
 const inputClass =

@@ -22,19 +22,21 @@ subdomain `mgbr1-fad`). Pilot addresses: survey `https://feedback.mgbr1-fad.work
 `feedback-admin`). D1 `feedback` (APAC) holds the schema from 0001. Deploy only through `npm run deploy:public|admin` and `npm run db:migrate:remote`,
 which refuse to run while configs still hold placeholders or test keys (`scripts/predeploy-check.mjs`).
 
-## Current state (2026-09-23)
+## Current state (2026-09-24)
 
-Phase 1 (ARTA CSM core) is built and tested locally; **nothing is deployed**, no Cloudflare
-account is set up, and no office data has been loaded.
+**Staff-only pilot is live** on the mgbr1.fad Cloudflare account (workers.dev): survey at
+`feedback.mgbr1-fad.workers.dev`, staff side behind Access at `feedback-admin.mgbr1-fad.workers.dev`.
+Pilot data from `seeds/pilot.sql` (placeholder services, QR code `CC1MRS`). Staff tested on phones.
 
-- Public survey, admin side, reports, paper entry, imports, QR posters, backups: implemented.
-- 179 tests pass (shared 122, admin 30, public 27); typecheck and lint clean; both Workers
-  build and dry-run deploy.
-- Verified end to end against local D1: a real submission through the dev server (live
-  Siteverify with Cloudflare's test keys), idempotent retry, admin dashboard and CSV export.
-- **Not verified**: the two UIs in a real browser (no browser automation was available), a real
-  Access sign-in, a real Turnstile widget, phone/in-app-browser behaviour, accessibility audit.
-
+- 219 tests pass (shared 134, admin 42, public 31 Worker + 12 UI/axe); typecheck and lint clean.
+- Verified live: Access sign-in, Turnstile, a real submission, staff-side views and exports.
+  Lighthouse mobile on the survey: performance 97, accessibility 100.
+- Added 2026-09-24 (needs `db:migrate:remote` + both deploys): excluding responses from reports
+  (migration 0002), survey accessibility fixes, Excel export of the ARTA report.
+- Live gotchas found in the pilot: Turnstile needs `Referrer-Policy: strict-origin` (not
+  `no-referrer`, error 110200); a secret piped into `wrangler secret put` can save empty — use
+  `wrangler secret bulk` from a temp JSON, then probe `POST /api/responses` with `{}` (400 = ok).
+- The office's paper form is **ARTA-2242-3 (expired 31 July 2023), with no SQD0** — see TODOS.
 ## Key facts worth remembering
 
 - The office collects the CSM on **paper and online** today. Recommended switch: parallel pilot

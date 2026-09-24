@@ -1,5 +1,7 @@
 import {
   addDays,
+  EXCLUSION_NOTE_MAX_LENGTH,
+  EXCLUSION_REASONS,
   fieldErrors,
   generatePublicRef,
   isIsoDate,
@@ -10,9 +12,10 @@ import {
   type PaperResponse,
 } from "@feedback/shared";
 import type { Hono } from "hono";
+import { z } from "zod";
 import { auditStatement } from "../audit";
 import type { AdminHono, Staff } from "../env";
-import { ALL_ROLES, CART_ROLES, route, type AdminContext } from "../routes";
+import { ADMIN_ONLY, ALL_ROLES, CART_ROLES, route, type AdminContext } from "../routes";
 
 const PAGE_SIZE = 50;
 
@@ -28,6 +31,19 @@ function visibility(staff: Staff) {
 
 const SQD_SELECT = SQD_CODES.map((c) => `r.${c}`).join(", ");
 
+const exclusionSchema = z.strictObject({
+  reason: z.enum(EXCLUSION_REASONS),
+  note: z
+    .string()
+    .trim()
+    .max(EXCLUSION_NOTE_MAX_LENGTH)
+    .optional()
+    .transform((s) => (s ? s : null)),
+});
+
+/** List filter for excluded responses: shown with a badge (default), hidden, or on their own. */
+const EXCLUDED_FILTERS = { include: 0, hide: 1, only: 2 } as const;
+
 export function responseRoutes(app: Hono<AdminHono>) {
   route(app, "GET", "/api/responses", ALL_ROLES, async (c) => {
     const v = visibility(c.get("staff"));
@@ -39,11 +55,13 @@ export function responseRoutes(app: Hono<AdminHono>) {
     const channel = c.req.query("channel") || null;
     const before = Number(c.req.query("before") ?? "") || null;
     const withComments = c.req.query("comments") === "1";
+    const excluded = EXCLUDED_FILTERS[(c.req.query("excluded") ?? "include") as keyof typeof EXCLUDED_FILTERS];
+    if (excluded === undefined) return c.json({ error: "invalid_excluded" }, 400);
 
     const { results } = await c.env.DB.prepare(
       `SELECT r.id, r.public_ref, r.transaction_date, r.submitted_at, r.channel, r.service_id,
               s.name AS service_name, d.code AS division_code, ${SQD_SELECT},
-              r.suspect_burst, r.comment_visibility,
+              r.suspect_burst, r.comment_visibility, r.excluded_at, r.excluded_reason,
               CASE WHEN ?6 = 1 AND r.comment_visibility <> 'released' THEN NULL ELSE r.suggestion END AS suggestion,
               (r.suggestion IS NOT NULL) AS has_suggestion,
               CASE WHEN ?7 = 1 THEN EXISTS (SELECT 1 FROM response_contacts rc WHERE rc.response_id = r.id) ELSE 0 END AS has_contact
@@ -56,10 +74,11 @@ export function responseRoutes(app: Hono<AdminHono>) {
           AND (?5 IS NULL OR s.division_id = ?5)
           AND (?8 IS NULL OR r.id < ?8)
           AND (?9 = 0 OR r.suggestion IS NOT NULL)
+          AND (?10 = 0 OR (?10 = 1 AND r.excluded_at IS NULL) OR (?10 = 2 AND r.excluded_at IS NOT NULL))
         ORDER BY r.id DESC
         LIMIT ${PAGE_SIZE + 1}`,
     )
-      .bind(from, to, serviceId, channel, v.divisionId, v.commentsReleasedOnly ? 1 : 0, v.seesContactFlag ? 1 : 0, before, withComments ? 1 : 0)
+      .bind(from, to, serviceId, channel, v.divisionId, v.commentsReleasedOnly ? 1 : 0, v.seesContactFlag ? 1 : 0, before, withComments ? 1 : 0, excluded)
       .all<Record<string, unknown> & { id: number }>();
     const page = results.slice(0, PAGE_SIZE);
     return c.json({ items: page, nextBefore: results.length > PAGE_SIZE ? page[page.length - 1]?.id : null });
@@ -84,6 +103,7 @@ export function responseRoutes(app: Hono<AdminHono>) {
     if (!v.seesContactFlag) {
       delete row.has_contact;
       delete row.encoded_by;
+      delete row.excluded_note;
     }
     return c.json(row);
   });
@@ -119,6 +139,43 @@ export function responseRoutes(app: Hono<AdminHono>) {
       auditStatement(c.env.DB, { actor: staff.email, action: "response.release_comment", entity: "response", entityId: id }),
     ]);
     if (!result?.meta.changes) return c.json({ error: "nothing_to_release" }, 409);
+    return c.json({ ok: true });
+  });
+
+  // Leaves a response out of every report and count. The row stays: responses are official records.
+  route(app, "POST", "/api/responses/:id/exclude", CART_ROLES, async (c) => {
+    const staff = c.get("staff");
+    const id = Number(c.req.param("id"));
+    const parsed = exclusionSchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: "invalid", fields: fieldErrors(parsed.error) }, 400);
+    const { reason, note } = parsed.data;
+    const [result] = await c.env.DB.batch([
+      c.env.DB.prepare(
+        `UPDATE responses SET excluded_at = ?2, excluded_by = ?3, excluded_reason = ?4, excluded_note = ?5
+          WHERE id = ?1 AND excluded_at IS NULL`,
+      ).bind(id, new Date().toISOString(), staff.email, reason, note),
+      // The reason only: a free-text note could name someone, and the audit log is kept forever.
+      auditStatement(c.env.DB, { actor: staff.email, action: "response.exclude", entity: "response", entityId: id, detail: { reason } }),
+    ]);
+    if (!result?.meta.changes) {
+      const exists = await c.env.DB.prepare(`SELECT 1 AS ok FROM responses WHERE id = ?1`).bind(id).first();
+      return exists ? c.json({ error: "already_excluded" }, 409) : c.json({ error: "not_found" }, 404);
+    }
+    return c.json({ ok: true });
+  });
+
+  // Undoing an exclusion made by mistake is for administrators only.
+  route(app, "POST", "/api/responses/:id/restore", ADMIN_ONLY, async (c) => {
+    const staff = c.get("staff");
+    const id = Number(c.req.param("id"));
+    const [result] = await c.env.DB.batch([
+      c.env.DB.prepare(
+        `UPDATE responses SET excluded_at = NULL, excluded_by = NULL, excluded_reason = NULL, excluded_note = NULL
+          WHERE id = ?1 AND excluded_at IS NOT NULL`,
+      ).bind(id),
+      auditStatement(c.env.DB, { actor: staff.email, action: "response.restore", entity: "response", entityId: id }),
+    ]);
+    if (!result?.meta.changes) return c.json({ error: "not_excluded" }, 409);
     return c.json({ ok: true });
   });
 
@@ -249,7 +306,8 @@ export function responseRoutes(app: Hono<AdminHono>) {
     if (!isIsoDate(from) || !isIsoDate(to) || from > to) return c.json({ error: "invalid_period" }, 400);
     const { results } = await c.env.DB.prepare(
       `SELECT r.public_ref, r.transaction_date, d.code AS division, s.name AS service, r.channel, r.client_type, r.sex,
-              r.age, r.region, r.cc1, r.cc2, r.cc3, ${SQD_SELECT}, r.suggestion, r.control_no, r.submitted_at
+              r.age, r.region, r.cc1, r.cc2, r.cc3, ${SQD_SELECT}, r.suggestion, r.control_no, r.submitted_at,
+              r.excluded_at, r.excluded_reason
          FROM responses r JOIN services s ON s.id = r.service_id JOIN divisions d ON d.id = s.division_id
         WHERE r.transaction_date BETWEEN ?1 AND ?2
         ORDER BY r.transaction_date, r.id`,
@@ -273,6 +331,9 @@ export function responseRoutes(app: Hono<AdminHono>) {
       "suggestion",
       "control_no",
       "submitted_at",
+      // The full record: excluded rows stay in, marked, so the export still matches the database.
+      "excluded_at",
+      "excluded_reason",
     ];
     await auditStatement(c.env.DB, {
       actor: staff.email,

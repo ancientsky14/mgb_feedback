@@ -1,4 +1,13 @@
-import { ARTA_CSM_2420_03_ONSITE, CHANNELS, getInstrument, SQD_CODES } from "@feedback/shared";
+import {
+  ARTA_CSM_2420_03_ONSITE,
+  CHANNELS,
+  EXCLUSION_NOTE_MAX_LENGTH,
+  EXCLUSION_REASON_LABELS,
+  EXCLUSION_REASONS,
+  getInstrument,
+  SQD_CODES,
+  type ExclusionReason,
+} from "@feedback/shared";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { api } from "../api";
@@ -20,13 +29,15 @@ interface ListItem {
   comment_visibility: "cart_only" | "released";
   suspect_burst: number;
   has_contact: number;
+  excluded_at: string | null;
+  excluded_reason: ExclusionReason | null;
 }
 
 const SCALE: Record<number, string> = { 0: "N/A", 1: "Strongly Disagree", 2: "Disagree", 3: "Neither", 4: "Agree", 5: "Strongly Agree" };
 
 export function ResponsesPage({ me }: { me: Me }) {
   const meta = useMeta();
-  const [filters, setFilters] = useState({ from: "", to: "", service: "", channel: "", comments: false });
+  const [filters, setFilters] = useState({ from: "", to: "", service: "", channel: "", comments: false, excluded: "include" });
   const [openId, setOpenId] = useState<number | null>(null);
   const params = new URLSearchParams({
     ...(filters.from ? { from: filters.from } : {}),
@@ -34,6 +45,7 @@ export function ResponsesPage({ me }: { me: Me }) {
     ...(filters.service ? { service: filters.service } : {}),
     ...(filters.channel ? { channel: filters.channel } : {}),
     ...(filters.comments ? { comments: "1" } : {}),
+    ...(filters.excluded !== "include" ? { excluded: filters.excluded } : {}),
   }).toString();
 
   const list = useInfiniteQuery({
@@ -73,6 +85,13 @@ export function ResponsesPage({ me }: { me: Me }) {
                 {c.replace("_", " ")}
               </option>
             ))}
+          </select>
+        </Field>
+        <Field label="Excluded from reports">
+          <select className={inputClass} value={filters.excluded} onChange={(e) => setFilters({ ...filters, excluded: e.target.value })}>
+            <option value="include">Show, marked</option>
+            <option value="hide">Hide</option>
+            <option value="only">Only excluded</option>
           </select>
         </Field>
         <label className="flex items-center gap-2 pb-2 text-sm">
@@ -118,6 +137,9 @@ export function ResponsesPage({ me }: { me: Me }) {
                     <td className="py-2 pr-3">
                       {r.channel}
                       {r.suspect_burst ? <span className="ml-1 rounded bg-amber-100 px-1 text-xs">burst</span> : null}
+                      {r.excluded_reason ? (
+                        <span className="ml-1 rounded bg-slate-200 px-1 text-xs">excluded · {EXCLUSION_REASON_LABELS[r.excluded_reason]}</span>
+                      ) : null}
                     </td>
                     <td className="py-2 pr-3">{r.sqd0 === null ? "—" : SCALE[r.sqd0]}</td>
                     <td className="py-2">
@@ -256,6 +278,102 @@ function ResponseDetail({ id, me }: { id: number; me: Me }) {
           Correct this paper form
         </Button>
       )}
+
+      <Exclusion id={id} me={me} response={r} />
     </Card>
+  );
+}
+
+/** Leave a response out of reports (staff test, spam, duplicate). The record itself stays. */
+function Exclusion({ id, me, response: r }: { id: number; me: Me; response: Record<string, unknown> }) {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState<ExclusionReason>("staff_test");
+  const [note, setNote] = useState("");
+  const refresh = () => {
+    void qc.invalidateQueries({ queryKey: ["response", id] });
+    void qc.invalidateQueries({ queryKey: ["responses"] });
+  };
+  const exclude = useMutation({
+    mutationFn: () => api(`/api/responses/${id}/exclude`, { body: { reason, ...(note.trim() ? { note: note.trim() } : {}) } }),
+    onSuccess: () => {
+      setOpen(false);
+      setNote("");
+      refresh();
+    },
+  });
+  const restore = useMutation({ mutationFn: () => api(`/api/responses/${id}/restore`, { body: {} }), onSuccess: refresh });
+
+  if (r.excluded_at) {
+    const label = EXCLUSION_REASON_LABELS[r.excluded_reason as ExclusionReason] ?? String(r.excluded_reason);
+    return (
+      <div className="mt-4 rounded-lg border border-slate-300 bg-slate-50 p-3 text-sm">
+        <p>
+          <strong>Excluded from reports</strong> · {label}
+          {r.excluded_note ? ` · ${String(r.excluded_note)}` : ""}
+          <br />
+          <span className="text-(--ink-2)">
+            By {String(r.excluded_by)} on {String(r.excluded_at).slice(0, 10)}. The response is kept on record.
+          </span>
+        </p>
+        {me.role === "admin" && (
+          <Button
+            className="mt-2"
+            variant="secondary"
+            disabled={restore.isPending}
+            onClick={() => {
+              if (window.confirm("Count this response in reports again? This is recorded in the audit log.")) restore.mutate();
+            }}
+          >
+            Restore to reports
+          </Button>
+        )}
+        <ErrorBox error={restore.error} />
+      </div>
+    );
+  }
+  if (!canWrite(me)) return null;
+  if (!open) {
+    return (
+      <Button className="mt-4 ml-2" variant="secondary" onClick={() => setOpen(true)}>
+        Exclude from reports
+      </Button>
+    );
+  }
+  return (
+    <form
+      className="mt-4 rounded-lg border border-slate-300 p-3"
+      onSubmit={(e) => {
+        e.preventDefault();
+        exclude.mutate();
+      }}
+    >
+      <p className="text-sm">
+        The response stays on record but no longer counts in reports, the dashboard or report exports. Only an administrator can
+        undo this. Use it for staff tests, spam and duplicates, never for an answer you disagree with.
+        {r.channel === "import" ? " Replacing this import batch later removes its rows, and this exclusion with them." : ""}
+      </p>
+      <Field label="Reason">
+        <select className={inputClass} value={reason} onChange={(e) => setReason(e.target.value as ExclusionReason)}>
+          {EXCLUSION_REASONS.map((code) => (
+            <option key={code} value={code}>
+              {EXCLUSION_REASON_LABELS[code]}
+            </option>
+          ))}
+        </select>
+      </Field>
+      <Field label="Note (optional)" hint="No names or contact details.">
+        <input className={inputClass} value={note} maxLength={EXCLUSION_NOTE_MAX_LENGTH} onChange={(e) => setNote(e.target.value)} />
+      </Field>
+      <div className="mt-3 flex gap-2">
+        <Button type="submit" variant="danger" disabled={exclude.isPending}>
+          Exclude from reports
+        </Button>
+        <Button type="button" variant="secondary" onClick={() => setOpen(false)}>
+          Cancel
+        </Button>
+      </div>
+      <ErrorBox error={exclude.error} />
+    </form>
   );
 }

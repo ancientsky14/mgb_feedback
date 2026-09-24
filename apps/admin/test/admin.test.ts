@@ -1,5 +1,6 @@
 import { tallyTemplateRows, toCsv } from "@feedback/shared";
 import { env, exports } from "cloudflare:workers";
+import { strFromU8, unzipSync } from "fflate";
 import { SignJWT, exportJWK, generateKeyPair } from "jose";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createApp } from "../src/worker/app";
@@ -199,6 +200,112 @@ describe("contact details", () => {
     const csv = await res.text();
     expect(csv).not.toContain("client@example.ph");
     expect(csv).toContain(`"'=HYPERLINK(""http://evil"")"`);
+  });
+});
+
+describe("the Excel report", () => {
+  it("is a workbook with both tables, audited, and hides small groups from a focal person", async () => {
+    const res = await api("/api/reports/csm.xlsx?from=2026-09&to=2026-09", { as: "focal@mgb.test" });
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Type")).toBe("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    expect(String.fromCharCode(bytes[0]!, bytes[1]!)).toBe("PK");
+    const files = unzipSync(bytes);
+    const summary = strFromU8(files["xl/worksheets/sheet1.xml"]!);
+    expect(summary).toContain("Quarry");
+    expect(summary).toContain("fewer than 5");
+    expect(summary).not.toContain("Geohazard"); // another division
+    expect(strFromU8(files["xl/workbook.xml"]!)).toContain(`name="SQD detail"`);
+    const audit = await env.DB.prepare(`SELECT actor FROM audit_log WHERE action = 'export.csm_xlsx' ORDER BY id DESC`).first();
+    expect(audit?.actor).toBe("focal@mgb.test");
+  });
+
+  it("refuses a bad period", async () => {
+    expect((await api("/api/reports/csm.xlsx?from=2026-10&to=2026-09", { as: "cart@mgb.test" })).status).toBe(400);
+  });
+});
+
+describe("excluding a response from reports", () => {
+  // Own rows in their own month, so the seeded September counts above stay as they are.
+  const MONTH = "2025-03";
+  beforeEach(async () => {
+    const insert = env.DB.prepare(
+      `INSERT OR IGNORE INTO responses (id, public_ref, submission_id, instrument_code, service_id, service_point_id, channel,
+         transaction_date, client_type, cc1, cc2, cc3, sqd0, sqd1, sqd2, sqd3, sqd4, sqd5, sqd6, sqd7, sqd8, submitted_at)
+       VALUES (?1, ?2, ?3, 'ARTA-2420-03-ONSITE', 1, 1, 'qr', ?4, 'citizen', 1, 1, 1, 5, 5, 5, 5, 5, 5, 5, 5, 5, ?4)`,
+    );
+    await env.DB.batch(
+      [901, 902, 903, 904, 905].map((id) => insert.bind(id, `EXCL-${id}-REF00`, crypto.randomUUID(), `${MONTH}-1${id - 900}`)),
+    );
+  });
+  const respondents = async () =>
+    (await json<{ office: { respondents: number } }>(await api(`/api/reports/csm?from=${MONTH}&to=${MONTH}`, { as: "cart@mgb.test" })))
+      .office.respondents;
+
+  it("leaves the response out of the report but keeps it listed and exported, marked", async () => {
+    const before = await respondents();
+    const res = await api("/api/responses/901/exclude", { as: "cart@mgb.test", body: { reason: "staff_test", note: "Pilot phone test" } });
+    expect(res.status).toBe(200);
+    expect(await respondents()).toBe(before - 1);
+
+    const list = await json<{ items: { id: number; excluded_reason: string | null }[] }>(
+      await api(`/api/responses?from=${MONTH}-01&to=${MONTH}-31`, { as: "cart@mgb.test" }),
+    );
+    expect(list.items.find((i) => i.id === 901)?.excluded_reason).toBe("staff_test");
+    const hidden = await json<{ items: { id: number }[] }>(
+      await api(`/api/responses?from=${MONTH}-01&to=${MONTH}-31&excluded=hide`, { as: "cart@mgb.test" }),
+    );
+    expect(hidden.items.map((i) => i.id)).not.toContain(901);
+    const only = await json<{ items: { id: number }[] }>(
+      await api(`/api/responses?from=${MONTH}-01&to=${MONTH}-31&excluded=only`, { as: "cart@mgb.test" }),
+    );
+    expect(only.items.map((i) => i.id)).toEqual([901]);
+
+    const raw = await (await api(`/api/export/responses.csv?from=${MONTH}-01&to=${MONTH}-31`, { as: "cart@mgb.test" })).text();
+    expect(raw.split("\r\n")[0]).toContain("excluded_reason");
+    expect(raw).toContain("EXCL-901-REF00");
+  });
+
+  it("audits the reason but never the note", async () => {
+    await api("/api/responses/902/exclude", { as: "cart@mgb.test", body: { reason: "spam", note: "Juan dela Cruz again" } });
+    const audit = await env.DB.prepare(
+      `SELECT actor, detail FROM audit_log WHERE action = 'response.exclude' AND entity_id = '902'`,
+    ).first<{ actor: string; detail: string }>();
+    expect(audit?.actor).toBe("cart@mgb.test");
+    expect(JSON.parse(audit!.detail)).toEqual({ reason: "spam" });
+  });
+
+  it("refuses divisions, unknown reasons and a second exclusion", async () => {
+    expect((await api("/api/responses/903/exclude", { as: "focal@mgb.test", body: { reason: "spam" } })).status).toBe(403);
+    expect((await api("/api/responses/903/exclude", { as: "cart@mgb.test", body: { reason: "disliked" } })).status).toBe(400);
+    expect((await api("/api/responses/903/exclude", { as: "cart@mgb.test", body: { reason: "duplicate" } })).status).toBe(200);
+    const again = await api("/api/responses/903/exclude", { as: "cart@mgb.test", body: { reason: "spam" } });
+    expect(again.status).toBe(409);
+    expect(await json(again)).toEqual({ error: "already_excluded" });
+    expect((await api("/api/responses/99999/exclude", { as: "cart@mgb.test", body: { reason: "spam" } })).status).toBe(404);
+  });
+
+  it("can be undone by an administrator only, and the undo is audited", async () => {
+    const before = await respondents();
+    await api("/api/responses/904/exclude", { as: "cart@mgb.test", body: { reason: "staff_test" } });
+    expect(await respondents()).toBe(before - 1);
+    expect((await api("/api/responses/904/restore", { as: "cart@mgb.test", body: {} })).status).toBe(403);
+    expect((await api("/api/responses/904/restore", { as: "admin@mgb.test", body: {} })).status).toBe(200);
+    expect(await respondents()).toBe(before);
+    expect((await api("/api/responses/904/restore", { as: "admin@mgb.test", body: {} })).status).toBe(409);
+    const audit = await env.DB.prepare(`SELECT actor FROM audit_log WHERE action = 'response.restore' AND entity_id = '904'`).first();
+    expect(audit?.actor).toBe("admin@mgb.test");
+  });
+
+  it("is refused by the database when half set", async () => {
+    await expect(
+      env.DB.prepare(`UPDATE responses SET excluded_at = '2026-01-01T00:00:00Z' WHERE id = 905`).run(),
+    ).rejects.toThrow(/exclusion needs/);
+    await expect(
+      env.DB.prepare(
+        `UPDATE responses SET excluded_at = 'x', excluded_by = 'a@b', excluded_reason = 'disliked' WHERE id = 905`,
+      ).run(),
+    ).rejects.toThrow();
   });
 });
 

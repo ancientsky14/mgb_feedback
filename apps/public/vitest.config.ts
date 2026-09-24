@@ -23,5 +23,7 @@ export default defineConfig({
   ],
   test: {
     setupFiles: ["./test/apply-migrations.ts"],
+    // The survey UI tests (test-ui/) run in jsdom through vitest.ui.config.ts.
+    include: ["test/**/*.test.ts"],
   },
 });

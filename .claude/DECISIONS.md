@@ -99,6 +99,23 @@ log still names each staff member (Access signs them in with their own emails). 
 the FAD Cloudflare login, a second person able to sign in, `wrangler logout` on shared PCs.
 **Status:** active — account ID to be pinned once Wrangler is signed in as mgbr1.fad.
 
+## 2026-09-24 — Excluding a response instead of deleting it
+
+**Decision:** Responses are never deleted. CART or an admin can **exclude** one from reports, with
+a reason (`staff_test`, `spam`, `duplicate`, `other`) and an optional note (migration 0002). Every
+number-producing query filters `excluded_at IS NULL`; the choke point is `loadReport` in
+`apps/admin/src/worker/report-data.ts`, plus the dashboard alerts and the import overlap check.
+The list shows excluded rows with a badge; the raw responses CSV keeps them, with `excluded_at`
+and `excluded_reason` columns. Only an admin can restore. The audit log records the reason, never
+the note.
+**Why:** The staff pilot left test submissions in the live database, and they would have counted in
+the FY2026 ARTA report. Deleting official records is what the triggers exist to prevent; an audited,
+reversible exclusion keeps the record and the reason. The same action handles bot bursts and
+duplicate paper forms later.
+**Accepted cost:** Replacing an import batch deletes its rows, so an exclusion on an imported row
+disappears with it (re-importing a corrected file is the fix for bad imported rows anyway).
+**Status:** active
+
 Format for new entries:
 
 ```markdown

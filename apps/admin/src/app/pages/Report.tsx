@@ -50,6 +50,9 @@ export function ReportPage({ me }: { me: Me }) {
             <Button variant="secondary" onClick={() => window.print()}>
               Print or save as PDF
             </Button>
+            <a className="rounded-lg border border-slate-400 bg-white px-4 py-2 text-sm font-semibold" href={`/api/reports/csm.xlsx?${params}`}>
+              Excel (.xlsx)
+            </a>
             <a className="rounded-lg border border-slate-400 bg-white px-4 py-2 text-sm font-semibold" href={`/api/reports/csm.csv?${params}`}>
               Summary CSV
             </a>

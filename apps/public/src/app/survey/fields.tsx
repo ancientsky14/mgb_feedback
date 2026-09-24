@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { Face } from "./Face";
 
 export function FieldError({ id, message }: { id: string; message: string | undefined }) {
@@ -116,9 +116,15 @@ export function LikertItem(props: {
 /** Lists a step's problems at the top, each linked to its field, and is announced when it appears. */
 export function ErrorSummary({ errors }: { errors: Record<string, string> }) {
   const entries = Object.entries(errors);
+  const box = useRef<HTMLDivElement>(null);
+  const signature = Object.keys(errors).join(",");
+  // Focus moves to the summary each time a step fails, so keyboard users land on the list of problems.
+  useEffect(() => {
+    if (signature) box.current?.focus();
+  }, [signature]);
   if (entries.length === 0) return null;
   return (
-    <div role="alert" className="mt-4 rounded-lg border-2 border-red-700 bg-red-50 p-4">
+    <div ref={box} tabIndex={-1} role="alert" className="mt-4 rounded-lg border-2 border-red-700 bg-red-50 p-4">
       <p className="font-semibold text-red-900">Please check {entries.length === 1 ? "this answer" : "these answers"}:</p>
       <ul className="mt-2 list-disc pl-5 text-sm text-red-900">
         {entries.map(([field, message]) => (

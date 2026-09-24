@@ -355,7 +355,7 @@ async function existingDataInMonths(db: D1Database, months: readonly string[]) {
   if (months.length === 0) return { responses: 0, tallyBatches: 0 };
   const { firstDay, lastDay } = monthBounds(months[0]!, months[months.length - 1]!);
   const [responses, tallies] = await db.batch([
-    db.prepare(`SELECT count(*) AS n FROM responses WHERE transaction_date BETWEEN ?1 AND ?2`).bind(firstDay, lastDay),
+    db.prepare(`SELECT count(*) AS n FROM responses WHERE transaction_date BETWEEN ?1 AND ?2 AND excluded_at IS NULL`).bind(firstDay, lastDay),
     db
       .prepare(
         `SELECT count(DISTINCT lt.import_batch_id) AS n FROM legacy_tallies lt JOIN import_batches b ON b.id = lt.import_batch_id

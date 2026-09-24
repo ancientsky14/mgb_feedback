@@ -21,12 +21,20 @@ Check the code before trusting this list.
 
 - [ ] Golden test: import FY2025 data through the real importers; the generated report must equal
       the filed FY2025 report. Decide `office_overall_method` from it.
-- [ ] Look at both UIs in a real browser and on a mid-range Android phone (Messenger and QR-scanner
-      in-app browsers); axe/WCAG 2.2 AA pass; Lighthouse on slow 4G.
-- [ ] XLSX export of the ARTA report (CSV and print-to-PDF exist).
-- [ ] Wrangler signed in as mgbr1.fad → pin `account_id` in the three configs.
-- [ ] Deploy the staff-only pilot per `DEPLOYMENT.md` (mgbr1.fad account, workers.dev); first
-      restore drill; schedule `scripts/backup.ps1`.
+- [x] Survey accessibility: axe WCAG 2.2 AA tests per step (`apps/public/test-ui/`, jsdom);
+      Lighthouse mobile on the live survey 2026-09-24: performance 97, accessibility 100.
+- [ ] Look at the survey on a mid-range Android phone and in the Messenger / QR-scanner in-app
+      browsers (staff pilot phones passed 2026-09-24; re-check after each UI change).
+- [x] XLSX export of the ARTA report (`/api/reports/csm.xlsx`, shared rows with the CSVs).
+- [x] Exclude responses from reports (migration 0002): staff pilot test submissions must be
+      excluded ("Staff test") on the live system after migrating.
+- [x] Wrangler signed in as mgbr1.fad → pin `account_id` in the three configs.
+- [x] Deploy the staff-only pilot (mgbr1.fad account, workers.dev), 2026-09-24.
+- [ ] First restore drill and schedule `scripts/backup.ps1` nightly.
+- [ ] Paper form in use is **ARTA-2242-3 (expired 31 July 2023)** and has **no SQD0**. Add it as
+      a retired instrument version (verbatim, new code, migration row) so paper forms are typed
+      in against the version the client actually answered; SQD0 stays blank. Confirm with CART
+      which version ARTA currently requires (both ARTA-2242-3 and ARTA-2420-03 have expired).
 - [ ] Pilot at the PACD (Q4 2026) alongside the current method; reconcile counts.
 
 ## Phase 2 — integrity and case register

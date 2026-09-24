@@ -9,5 +9,7 @@ export * from "./time";
 export * from "./submission";
 export * from "./csv-parse";
 export * from "./report";
+export * from "./report-export";
+export * from "./xlsx";
 export * from "./import-online";
 export * from "./import-tally";

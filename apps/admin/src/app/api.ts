@@ -52,6 +52,8 @@ export function describeError(err: unknown): string {
       row_errors: "Some rows have errors. Fix the sheet and upload it again.",
       missing_columns: "The file is missing required columns.",
       nothing_to_release: "There is no unreleased comment on this response.",
+      already_excluded: "This response is already excluded from reports.",
+      not_excluded: "This response is not excluded.",
     };
     return (err.body.error && known[err.body.error]) ?? err.body.message ?? `Something went wrong (${err.status}).`;
   }
