@@ -14,8 +14,14 @@ Check the code before trusting this list.
 - [ ] CART: confirm MGB Central Office / DENR do not already require a central CSM system.
 - [ ] DPO: Privacy Impact Assessment, final privacy notice (replace the draft in `Privacy.tsx`),
       retention periods, advice on hosting outside the Philippines.
-- [ ] FAD: an office-owned email for the Cloudflare account; two named administrators.
-- [ ] IT/web admin: a web address under an MGB-controlled domain (or a redirect).
+- [x] Office-owned Cloudflare account: `Ict1@mgb.gov.ph`'s Account (MGB ICT); FAD is a member.
+- [ ] ICT: set up the account's Zero Trust team (team name, Free plan) and the Access application for
+      `feedback-admin.onemgb.com` — the staff side cannot move until then.
+- [ ] ICT: keep `onemgb.com` registered to MGB, on auto-renew and registrar-locked (QR codes depend on it).
+- [ ] ICT: let `feedback.onemgb.com` and `feedback-admin.onemgb.com` through the office network (new
+      domains arrive "unrated"), and have `onemgb.com` categorized with web-filter vendors, before any
+      QR code is printed.
+- [x] Web address under an MGB-controlled domain: `feedback.onemgb.com`.
 
 ## Phase 1 — left to do
 
@@ -30,6 +36,8 @@ Check the code before trusting this list.
       excluded ("Staff test") on the live system after migrating.
 - [x] Wrangler signed in as mgbr1.fad → pin `account_id` in the three configs.
 - [x] Deploy the staff-only pilot (mgbr1.fad account, workers.dev), 2026-09-24.
+- [ ] Move to the ICT account (DEPLOYMENT.md): survey side, then staff side once Access exists.
+- [ ] Retire the old FAD account's Workers, D1, Turnstile widget and Access app after the move.
 - [ ] First restore drill and schedule `scripts/backup.ps1` nightly.
 - [x] Paper form in use is **ARTA-2242-3 (expired 31 July 2023)** and has **no SQD0**: added as
       retired version `ARTA-2242-3-ONSITE` (migration 0003); paper entry blanks SQD0 for it.

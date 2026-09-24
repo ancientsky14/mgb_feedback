@@ -1,8 +1,11 @@
 # Referrer-Policy is strict-origin, not no-referrer: Turnstile's iframe identifies the site from
 # the referrer, and without it every check fails with error 110200 ("unknown domain"). Only the
 # origin is sent, never the path (which carries the QR code).
+# HSTS matches what Hono's secureHeaders sends on /api/*; includeSubDomains covers only
+# *.feedback.onemgb.com, not ICT's other onemgb.com hosts.
 /*
   Content-Security-Policy: default-src 'self'; script-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; connect-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; object-src 'none'
+  Strict-Transport-Security: max-age=15552000; includeSubDomains
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()

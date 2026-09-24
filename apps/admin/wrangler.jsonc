@@ -2,15 +2,19 @@
 // code verifies the Access token itself too, so a misconfigured Access policy fails closed.
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
-  // Served at https://feedback-admin.mgbr1-fad.workers.dev, behind Cloudflare Access.
+  // Served only at https://feedback-admin.onemgb.com, behind Cloudflare Access.
   "name": "feedback-admin",
-  // The mgbr1.fad Cloudflare account (FAD's office login). Same value in all three configs.
-  "account_id": "e4fa12ea485dab2335b662d716736736",
+  // Ict1@mgb.gov.ph's Account (MGB ICT). FAD's member login also reaches FAD's own account, so this
+  // pin is what keeps every command in the ICT account. Same value in all three configs.
+  "account_id": "b299efc33bdc0c0dea89e9076f87586c",
   "main": "src/worker/index.ts",
   "compatibility_date": "2026-09-23",
   "observability": { "enabled": true },
   // Preview URLs would be a second, unprotected way in unless Access covers them too. Off.
   "preview_urls": false,
+  // One address only, the one the Access application covers.
+  "workers_dev": false,
+  "routes": [{ "pattern": "feedback-admin.onemgb.com", "custom_domain": true }],
   "assets": {
     "not_found_handling": "single-page-application",
     "run_worker_first": ["/api/*"]
@@ -19,19 +23,20 @@
     {
       "binding": "DB",
       "database_name": "feedback",
-      // Same database as apps/public and db.wrangler.jsonc (mgbr1.fad account, APAC).
-      "database_id": "347573b7-51c3-4716-893c-93e13847ecef",
+      // Same database as apps/public and db.wrangler.jsonc (ICT account, APAC).
+      "database_id": "1088eb82-633b-440f-8499-7e1dea9226df",
       "migrations_dir": "../../migrations"
     }
   ],
   // 23:00 UTC = 07:00 Manila: purge expired contact details and old rate-limit counters.
   "triggers": { "crons": ["0 23 * * *"] },
   "vars": {
-    // The Zero Trust team domain: the issuer of every Access token.
-    "ACCESS_TEAM_DOMAIN": "https://mgbr1-fad.cloudflareaccess.com",
-    // The Application Audience (AUD) tag of the Access application protecting this Worker.
+    // The MGB ICT account's Zero Trust team domain: the issuer of every Access token.
+    "ACCESS_TEAM_DOMAIN": "",
+    // The Application Audience (AUD) tag of the Access application for feedback-admin.onemgb.com.
     // Identifiers, not secrets: a token still has to be signed by the team's own keys.
-    "ACCESS_AUD": "a138656643d82c201196e9beaa0e7e89d317e47538d2b4bfeee59502e2df6dc3"
+    // Both empty until that application exists: an admin deploy is refused while they are.
+    "ACCESS_AUD": ""
   }
   // Local development only, in .dev.vars: DEV_AUTH_EMAIL. Honoured only for localhost requests.
 }

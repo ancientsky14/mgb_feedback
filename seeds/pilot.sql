@@ -23,5 +23,5 @@ INSERT OR IGNORE INTO service_points (code, label, division_id, default_service_
 VALUES ('CC1MRS', 'Public Assistance and Complaints Desk (pilot)', NULL, NULL, 'onsite', '2026-09-24T00:00:00.000Z');
 
 INSERT INTO settings (key, value, updated_by, updated_at)
-VALUES ('public_base_url', 'https://feedback.mgbr1-fad.workers.dev', 'system', '2026-09-24T00:00:00.000Z')
+VALUES ('public_base_url', 'https://feedback.onemgb.com', 'system', '2026-09-24T00:00:00.000Z')
 ON CONFLICT (key) DO UPDATE SET value = excluded.value, updated_by = excluded.updated_by, updated_at = excluded.updated_at;

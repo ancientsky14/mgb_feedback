@@ -97,7 +97,7 @@ test keys — into errors instead of a quietly unprotected survey.
 **Accepted cost:** Cloudflare's audit log shows every change as the FAD login. The app's own audit
 log still names each staff member (Access signs them in with their own emails). Mitigation: 2FA on
 the FAD Cloudflare login, a second person able to sign in, `wrangler logout` on shared PCs.
-**Status:** active — account ID to be pinned once Wrangler is signed in as mgbr1.fad.
+**Status:** superseded 2026-09-24 by "Move to the MGB ICT account and onemgb.com" below.
 
 ## 2026-09-24 — Excluding a response instead of deleting it
 
@@ -115,6 +115,26 @@ duplicate paper forms later.
 **Accepted cost:** Replacing an import batch deletes its rows, so an exclusion on an imported row
 disappears with it (re-importing a corrected file is the fix for bad imported rows anyway).
 **Status:** active
+
+## 2026-09-24 — Move to the MGB ICT account and onemgb.com
+
+**Decision:** The system moves to **Ict1@mgb.gov.ph's Account** (`b299efc33bdc0c0dea89e9076f87586c`),
+owned by MGB ICT, at two Workers custom domains on the MGB-owned `onemgb.com`:
+`feedback.onemgb.com` (survey) and `feedback-admin.onemgb.com` (staff side). FAD deploys through a
+member login (mgbr1.fad@gmail.com) that ICT invited and can revoke; the Zero Trust team is ICT's,
+account-wide, and this system is one Access application in it. workers.dev is off on both Workers.
+The survey's custom domain must equal `TURNSTILE_EXPECTED_HOSTNAME`, and `npm run deploy:admin` is
+refused until the Access values are set (the Access application is created before the first deploy
+on a custom domain). The pilot database was not carried over: it held only staff tests.
+**Why:** Printed QR codes are permanent, so they need an address MGB controls; workers.dev was for
+staff testing only. An ICT-owned account on an official mgb.gov.ph email beats a gmail login as the
+owner, and a member login keeps FAD's access revocable. One address per Worker means Turnstile and
+Access each cover the only way in. The member login reaches FAD's old account too, so the pinned
+`account_id` is now what keeps every command in the ICT account.
+**Accepted cost:** `onemgb.com` is a `.com`, not `gov.ph`: MGB ICT must keep it registered to MGB,
+on auto-renew and registrar-locked. If it lapsed, every printed QR code would break and someone
+else could register the name. Cloudflare's audit log shows FAD's changes under the member login.
+**Status:** active — survey side first; staff side waits on ICT's Zero Trust team.
 
 Format for new entries:
 

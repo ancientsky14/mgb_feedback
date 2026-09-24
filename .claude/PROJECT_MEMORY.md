@@ -16,27 +16,35 @@ management proposal for the RD, CART and DPO is a Claude doc:
 Repository: <https://github.com/ancientsky14/mgb_feedback> — **public**. See the hard rule in
 `AGENTS.md` about what may never be committed. CI (lint, typecheck, tests) runs on every push.
 
-Deployment target: the **mgbr1.fad** Cloudflare account (FAD's office login; workers.dev
-subdomain `mgbr1-fad`). Pilot addresses: survey `https://feedback.mgbr1-fad.workers.dev`
-(Worker `feedback`), staff side `https://feedback-admin.mgbr1-fad.workers.dev` (Worker
-`feedback-admin`). D1 `feedback` (APAC) holds the schema from 0001. Deploy only through `npm run deploy:public|admin` and `npm run db:migrate:remote`,
-which refuse to run while configs still hold placeholders or test keys (`scripts/predeploy-check.mjs`).
+Deployment target: **`Ict1@mgb.gov.ph`'s Account** (MGB ICT, `b299efc33bdc0c0dea89e9076f87586c`),
+reached through FAD's member login. Survey `https://feedback.onemgb.com` (Worker `feedback`), staff
+side `https://feedback-admin.onemgb.com` (Worker `feedback-admin`, behind ICT's Access team). D1
+`feedback` (APAC). Custom domains only; workers.dev is off. Deploy only through
+`npm run deploy:public|admin` and `npm run db:migrate:remote`, which refuse to run while configs are
+incomplete or inconsistent (`scripts/predeploy-check.mjs`). Full steps: `DEPLOYMENT.md`.
 
 ## Current state (2026-09-24)
 
-**Staff-only pilot is live** on the mgbr1.fad Cloudflare account (workers.dev): survey at
-`feedback.mgbr1-fad.workers.dev`, staff side behind Access at `feedback-admin.mgbr1-fad.workers.dev`.
-Pilot data from `seeds/pilot.sql` (placeholder services, QR code `CC1MRS`). Staff tested on phones.
+**Moving to the MGB ICT account** (`Ict1@mgb.gov.ph`'s Account, `b299efc33bdc0c0dea89e9076f87586c`)
+at `feedback.onemgb.com` (survey) and `feedback-admin.onemgb.com` (staff side, behind Access). FAD
+deploys with its member login (`mgbr1.fad@gmail.com`), which also reaches FAD's old account: the
+pinned `account_id` decides. Fresh database; the old pilot (FAD account, workers.dev) is retired
+afterwards. Archive of the old pilot database: `C:\feedback-backups\archive-mgbr1-fad` (staff tests only).
 
-- 219 tests pass (shared 134, admin 42, public 31 Worker + 12 UI/axe); typecheck and lint clean.
-- Verified live: Access sign-in, Turnstile, a real submission, staff-side views and exports.
-  Lighthouse mobile on the survey: performance 97, accessibility 100.
-- Added 2026-09-24 (needs `db:migrate:remote` + both deploys): excluding responses from reports
-  (migration 0002), survey accessibility fixes, Excel export of the ARTA report.
+- In progress: configs carry the ICT account, its D1 (`1088eb82-…`, APAC, migrations 0001–0003
+  applied), the custom domains, `workers_dev: false` and the ICT Turnstile site key. The survey side
+  can deploy. The staff side waits on ICT's Zero Trust team (none existed on 2026-09-24) for
+  `ACCESS_TEAM_DOMAIN` / `ACCESS_AUD`; until then `predeploy-check` refuses admin, deliberately.
+- 234 tests pass (shared 148, admin 43, public 31 Worker + 12 UI/axe); typecheck and lint clean.
+- The earlier staff pilot on workers.dev verified Access sign-in, Turnstile, a real submission, the
+  staff-side views and exports, and phones. Lighthouse mobile: performance 97, accessibility 100.
 - Live gotchas found in the pilot: Turnstile needs `Referrer-Policy: strict-origin` (not
   `no-referrer`, error 110200); a secret piped into `wrangler secret put` can save empty — use
   `wrangler secret bulk` from a temp JSON, then probe `POST /api/responses` with `{}` (400 = ok).
-- The office's paper form is **ARTA-2242-3 (expired 31 July 2023), with no SQD0**; it is in code as the retired version `ARTA-2242-3-ONSITE` (migration 0003) for paper entry. Look SQD items up with `sqdItem(instrument, code)`, never by array position.
+- The office's paper form is **ARTA-2242-3 (expired 31 July 2023), with no SQD0**; it is in code as
+  the retired version `ARTA-2242-3-ONSITE` (migration 0003) for paper entry. Look SQD items up with
+  `sqdItem(instrument, code)`, never by array position.
+
 ## Key facts worth remembering
 
 - The office collects the CSM on **paper and online** today. Recommended switch: parallel pilot
@@ -62,8 +70,8 @@ Pilot data from `seeds/pilot.sql` (placeholder services, QR code `CC1MRS`). Staf
 
 See `TODOS.md` → "Phase 0". The biggest: the Citizen's Charter services list, last year's filed
 CSM report with its raw tallies (for the golden test), samples of the paper tally sheet and the
-online form's CSV export (to pin the importers), the DPO's PIA and retention periods, an
-office-owned Cloudflare account, and a web address MGB controls.
+online form's CSV export (to pin the importers), the DPO's PIA and retention periods, the RD's
+approval, and ICT's Zero Trust team for the staff side's sign-in.
 
 ## See also
 
