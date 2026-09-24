@@ -108,7 +108,12 @@ export function createApp(deps: PublicDeps) {
     // Fail closed: without its secrets the Worker cannot verify or rate-limit, so it refuses.
     const secret = c.env.TURNSTILE_SECRET_KEY;
     const ipSecret = c.env.IP_HASH_SECRET;
-    if (!secret || !ipSecret) return c.json({ error: "unavailable" }, 503);
+    if (!secret || !ipSecret) {
+      // Names only: an empty secret usually means a paste that did not land at wrangler's prompt.
+      const missing = [!secret && "TURNSTILE_SECRET_KEY", !ipSecret && "IP_HASH_SECRET"].filter(Boolean);
+      console.error(JSON.stringify({ msg: "secrets_missing", missing }));
+      return c.json({ error: "unavailable" }, 503);
+    }
     if (turnstileTestKeysDeployed(c.req.url, c.env)) return c.json({ error: "unavailable" }, 503);
 
     if (Number(c.req.header("Content-Length") ?? 0) > MAX_BODY_BYTES) return c.json({ error: "too_large" }, 413);
