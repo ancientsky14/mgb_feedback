@@ -36,7 +36,7 @@ Pilot data from `seeds/pilot.sql` (placeholder services, QR code `CC1MRS`). Staf
 - Live gotchas found in the pilot: Turnstile needs `Referrer-Policy: strict-origin` (not
   `no-referrer`, error 110200); a secret piped into `wrangler secret put` can save empty — use
   `wrangler secret bulk` from a temp JSON, then probe `POST /api/responses` with `{}` (400 = ok).
-- The office's paper form is **ARTA-2242-3 (expired 31 July 2023), with no SQD0** — see TODOS.
+- The office's paper form is **ARTA-2242-3 (expired 31 July 2023), with no SQD0**; it is in code as the retired version `ARTA-2242-3-ONSITE` (migration 0003) for paper entry. Look SQD items up with `sqdItem(instrument, code)`, never by array position.
 ## Key facts worth remembering
 
 - The office collects the CSM on **paper and online** today. Recommended switch: parallel pilot

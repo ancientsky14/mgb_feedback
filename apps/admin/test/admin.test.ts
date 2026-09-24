@@ -339,6 +339,25 @@ describe("paper forms", () => {
     expect(row).toEqual({ channel: "paper", control_no: "2026-0101", encoded_by: "cart@mgb.test", sqd2: null });
   });
 
+  it("on the office's ARTA-2242-3 form have no SQD0: blank, and never counted against a score", async () => {
+    const old = { instrument: "ARTA-2242-3-ONSITE", serviceId: 1, transactionDate: "2024-05-10" };
+    const withSqd0 = await api("/api/paper-responses", { as: "cart@mgb.test", body: paper({ ...old, controlNo: "OLD-1" }) });
+    expect(withSqd0.status).toBe(400);
+    expect((await json<{ fields: Record<string, string[]> }>(withSqd0)).fields).toHaveProperty(["sqd.sqd0"]);
+
+    const sqd = { sqd0: null, sqd1: 5, sqd2: 5, sqd3: 4, sqd4: 4, sqd5: 0, sqd6: 5, sqd7: 5, sqd8: 4 };
+    const res = await api("/api/paper-responses", { as: "cart@mgb.test", body: paper({ ...old, controlNo: "OLD-2", sqd }) });
+    expect(res.status).toBe(201);
+
+    const report = await json<{ office: { respondents: number; sqd: Record<string, { counts: { blank: number }; score: { hundredths: number | null } }>; overall: { hundredths: number | null } } }>(
+      await api("/api/reports/csm?from=2024-05&to=2024-05", { as: "cart@mgb.test" }),
+    );
+    expect(report.office.respondents).toBe(1);
+    expect(report.office.sqd.sqd0!.score.hundredths).toBeNull(); // no answers, not 0%
+    expect(report.office.sqd.sqd0!.counts.blank).toBe(1);
+    expect(report.office.overall.hundredths).toBe(10000); // SQD1–8: every answer SA or A, N/A left out
+  });
+
   it("refuses a control number already used this year", async () => {
     expect((await api("/api/paper-responses", { as: "cart@mgb.test", body: paper() })).status).toBe(409);
     // The same number in another year is a different form.

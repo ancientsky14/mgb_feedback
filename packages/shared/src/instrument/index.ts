@@ -1,15 +1,26 @@
-import type { LanguageCode } from "../constants";
+import type { LanguageCode, SqdCode } from "../constants";
+import { ARTA_CSM_2242_3_ONSITE } from "./arta-csm-2242-3";
 import { ARTA_CSM_2420_03_ONLINE, ARTA_CSM_2420_03_ONSITE } from "./arta-csm-2420-03";
-import type { InstrumentDefinition, Localized } from "./types";
+import type { InstrumentDefinition, Localized, SqdItem } from "./types";
 
 export type { CcOption, CcQuestion, InstrumentDefinition, Localized, SqdItem } from "./types";
+export { ARTA_CSM_2242_3_ONSITE } from "./arta-csm-2242-3";
 export { ARTA_CSM_2420_03_ONLINE, ARTA_CSM_2420_03_ONSITE } from "./arta-csm-2420-03";
 
 /** Every released instrument version. A code here must also have a row in instrument_versions. */
 export const INSTRUMENTS: Readonly<Record<string, InstrumentDefinition>> = Object.freeze({
   [ARTA_CSM_2420_03_ONSITE.code]: ARTA_CSM_2420_03_ONSITE,
   [ARTA_CSM_2420_03_ONLINE.code]: ARTA_CSM_2420_03_ONLINE,
+  [ARTA_CSM_2242_3_ONSITE.code]: ARTA_CSM_2242_3_ONSITE,
 });
+
+/**
+ * The item a version asked under this code, or undefined when that version's form does not have
+ * it (ARTA-2242-3 has no SQD0). Look items up by code, never by position in `sqd`.
+ */
+export function sqdItem(instrument: InstrumentDefinition, code: SqdCode): SqdItem | undefined {
+  return instrument.sqd.find((item) => item.code === code);
+}
 
 export function getInstrument(code: string): InstrumentDefinition | undefined {
   return Object.hasOwn(INSTRUMENTS, code) ? INSTRUMENTS[code] : undefined;

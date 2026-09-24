@@ -1,4 +1,4 @@
-import { ARTA_CSM_2420_03_ONSITE, CLIENT_TYPES, getInstrument, REGIONS, SQD_CODES, type SqdCode } from "@feedback/shared";
+import { ARTA_CSM_2420_03_ONSITE, CLIENT_TYPES, getInstrument, REGIONS, SQD_CODES, sqdItem, type SqdCode } from "@feedback/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { api, ApiError } from "../api";
@@ -57,6 +57,16 @@ function nextControlNo(value: string): string {
 }
 
 const nullIfEmpty = (s: string) => (s.trim() === "" ? null : s.trim());
+
+/** Switching form version blanks the answers to items the new version does not print. */
+function withInstrument(form: PaperForm, code: string): Partial<PaperForm> {
+  const next = getInstrument(code);
+  if (!next) return { instrument: code };
+  return {
+    instrument: code,
+    sqd: Object.fromEntries(SQD_CODES.map((c) => [c, sqdItem(next, c) ? form.sqd[c] : null])) as Sqd,
+  };
+}
 
 /** The form as stored, for a correction. */
 function formFromResponse(r: Record<string, unknown>): PaperForm {
@@ -190,13 +200,14 @@ function PaperFormView({ initial, editId }: { initial: PaperForm; editId: number
             <Field label="Date of transaction">
               <input type="date" className={inputClass} value={form.transactionDate} onChange={(e) => set({ transactionDate: e.target.value })} required />
             </Field>
-            <Field label="Form version">
-              <select className={inputClass} value={form.instrument} onChange={(e) => set({ instrument: e.target.value })}>
+            <Field label="Form version" hint="Match the PSA Approval No. printed at the top right of the paper form.">
+              <select className={inputClass} value={form.instrument} onChange={(e) => set(withInstrument(form, e.target.value))}>
                 {meta.data?.instruments
                   .filter((i) => i.status !== "draft")
                   .map((i) => (
                     <option key={i.code} value={i.code}>
-                      {i.code} ({i.status})
+                      PSA {i.psa_approval_no} · {i.mode}
+                      {i.psa_expiry ? ` · expires ${i.psa_expiry}` : ""} ({i.status})
                     </option>
                   ))}
               </select>
@@ -298,10 +309,22 @@ function PaperFormView({ initial, editId }: { initial: PaperForm; editId: number
                 </tr>
               </thead>
               <tbody>
-                {SQD_CODES.map((code, i) => (
+                {SQD_CODES.map((code, i) => {
+                  const item = sqdItem(instrument, code);
+                  if (!item) {
+                    return (
+                      <tr key={code} className="border-b border-(--hairline) text-(--ink-2)">
+                        <td className="py-2 pr-3">
+                          <span className="font-medium">SQD{i}.</span> Not on this form version; recorded as blank.
+                        </td>
+                        <td colSpan={7} />
+                      </tr>
+                    );
+                  }
+                  return (
                   <tr key={code} className="border-b border-(--hairline)">
                     <td className="py-2 pr-3">
-                      <span className="font-medium">SQD{i}.</span> {instrument.sqd[i]?.text.en}
+                      <span className="font-medium">SQD{i}.</span> {item.text.en}
                     </td>
                     {[1, 2, 3, 4, 5, 0, null].map((v) => (
                       <td key={String(v)} className="px-2 py-2 text-center">
@@ -315,7 +338,8 @@ function PaperFormView({ initial, editId }: { initial: PaperForm; editId: number
                       </td>
                     ))}
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

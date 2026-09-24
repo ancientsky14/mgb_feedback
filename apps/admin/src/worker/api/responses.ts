@@ -4,10 +4,12 @@ import {
   EXCLUSION_REASONS,
   fieldErrors,
   generatePublicRef,
+  getInstrument,
   isIsoDate,
   manilaDate,
   paperResponseSchema,
   SQD_CODES,
+  sqdItem,
   toCsv,
   type PaperResponse,
 } from "@feedback/shared";
@@ -357,7 +359,15 @@ async function checkPaperReferences(c: AdminContext, p: PaperResponse): Promise<
     c.env.DB.prepare(`SELECT 1 AS ok FROM services WHERE id = ?1`).bind(p.serviceId),
     c.env.DB.prepare(`SELECT 1 AS ok FROM service_points WHERE id = ?1`).bind(p.servicePointId ?? -1),
   ]);
-  if (!instrument?.results.length) return c.json({ error: "invalid", fields: { instrument: ["Unknown form version"] } }, 400);
+  const definition = getInstrument(p.instrument);
+  if (!instrument?.results.length || !definition) {
+    return c.json({ error: "invalid", fields: { instrument: ["Unknown form version"] } }, 400);
+  }
+  // An item the chosen form does not print (ARTA-2242-3 has no SQD0) can only be blank.
+  const notOnForm = SQD_CODES.filter((code) => !sqdItem(definition, code) && p.sqd[code] !== null);
+  if (notOnForm.length > 0) {
+    return c.json({ error: "invalid", fields: Object.fromEntries(notOnForm.map((code) => [`sqd.${code}`, ["Not on this form version"]])) }, 400);
+  }
   if (!service?.results.length) return c.json({ error: "invalid", fields: { serviceId: ["Unknown service"] } }, 400);
   if (p.servicePointId !== null && !point?.results.length) {
     return c.json({ error: "invalid", fields: { servicePointId: ["Unknown service point"] } }, 400);

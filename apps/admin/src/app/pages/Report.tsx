@@ -7,6 +7,7 @@ import {
   REGIONS,
   SEXES,
   SQD_CODES,
+  sqdItem,
   type CsmReport,
   type Totals,
 } from "@feedback/shared";
@@ -257,7 +258,7 @@ function LikertTable({ totals }: { totals: Totals }) {
             return (
               <tr key={code} className="border-b border-(--hairline)">
                 <td className="py-2 pr-3">
-                  SQD{i} <span className="text-(--ink-2)">{inst.sqd[i]?.dimension}</span>
+                  SQD{i} <span className="text-(--ink-2)">{sqdItem(inst, code)?.dimension}</span>
                 </td>
                 {LIKERT_COLUMNS.map(([key]) => (
                   <td key={key} className="py-2 pr-3 text-right">

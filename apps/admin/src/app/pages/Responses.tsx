@@ -6,6 +6,7 @@ import {
   EXCLUSION_REASONS,
   getInstrument,
   SQD_CODES,
+  sqdItem,
   type ExclusionReason,
 } from "@feedback/shared";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -227,7 +228,7 @@ function ResponseDetail({ id, me }: { id: number; me: Me }) {
           {SQD_CODES.map((code, i) => (
             <tr key={code} className="border-b border-(--hairline)">
               <td className="py-1 pr-2 align-top text-(--ink-2)">SQD{i}</td>
-              <td className="py-1 pr-2">{instrument.sqd[i]?.text.en}</td>
+              <td className="py-1 pr-2">{sqdItem(instrument, code)?.text.en ?? <span className="text-(--ink-2)">Not on this form version</span>}</td>
               <td className="py-1 text-right whitespace-nowrap">{r[code] === null ? "blank" : SCALE[Number(r[code])]}</td>
             </tr>
           ))}

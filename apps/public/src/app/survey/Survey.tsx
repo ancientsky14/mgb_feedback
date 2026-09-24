@@ -391,11 +391,11 @@ function SurveyForm({ context, instrument }: { context: FormContext; instrument:
             transaction.
           </p>
           <ErrorSummary errors={errors} />
-          {instrument.sqd.map((item, index) => (
+          {instrument.sqd.map((item) => (
             <LikertItem
               key={item.code}
               name={item.code}
-              number={index}
+              number={Number(item.code.slice(3))}
               text={t(item.text)}
               hint={item.hint ? t(item.hint) : undefined}
               labels={{

@@ -31,10 +31,10 @@ Check the code before trusting this list.
 - [x] Wrangler signed in as mgbr1.fad → pin `account_id` in the three configs.
 - [x] Deploy the staff-only pilot (mgbr1.fad account, workers.dev), 2026-09-24.
 - [ ] First restore drill and schedule `scripts/backup.ps1` nightly.
-- [ ] Paper form in use is **ARTA-2242-3 (expired 31 July 2023)** and has **no SQD0**. Add it as
-      a retired instrument version (verbatim, new code, migration row) so paper forms are typed
-      in against the version the client actually answered; SQD0 stays blank. Confirm with CART
-      which version ARTA currently requires (both ARTA-2242-3 and ARTA-2420-03 have expired).
+- [x] Paper form in use is **ARTA-2242-3 (expired 31 July 2023)** and has **no SQD0**: added as
+      retired version `ARTA-2242-3-ONSITE` (migration 0003); paper entry blanks SQD0 for it.
+- [ ] Confirm with CART which CSM version ARTA currently requires (ARTA-2242-3 and ARTA-2420-03
+      have both expired), and have the office print that one.
 - [ ] Pilot at the PACD (Q4 2026) alongside the current method; reconcile counts.
 
 ## Phase 2 — integrity and case register
