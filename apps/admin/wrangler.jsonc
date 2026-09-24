@@ -32,11 +32,10 @@
   "triggers": { "crons": ["0 23 * * *"] },
   "vars": {
     // The MGB ICT account's Zero Trust team domain: the issuer of every Access token.
-    "ACCESS_TEAM_DOMAIN": "",
+    "ACCESS_TEAM_DOMAIN": "https://onemgb.cloudflareaccess.com",
     // The Application Audience (AUD) tag of the Access application for feedback-admin.onemgb.com.
     // Identifiers, not secrets: a token still has to be signed by the team's own keys.
-    // Both empty until that application exists: an admin deploy is refused while they are.
-    "ACCESS_AUD": ""
+    "ACCESS_AUD": "e096c7df623edc769920ba973ea2ddbe04a6af22e8ca5d817302fdb643fa6598"
   }
   // Local development only, in .dev.vars: DEV_AUTH_EMAIL. Honoured only for localhost requests.
 }

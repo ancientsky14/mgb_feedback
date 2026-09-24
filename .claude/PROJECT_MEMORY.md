@@ -31,10 +31,12 @@ deploys with its member login (`mgbr1.fad@gmail.com`), which also reaches FAD's 
 pinned `account_id` decides. Fresh database; the old pilot (FAD account, workers.dev) is retired
 afterwards. Archive of the old pilot database: `C:\feedback-backups\archive-mgbr1-fad` (staff tests only).
 
-- In progress: configs carry the ICT account, its D1 (`1088eb82-…`, APAC, migrations 0001–0003
-  applied), the custom domains, `workers_dev: false` and the ICT Turnstile site key. The survey side
-  can deploy. The staff side waits on ICT's Zero Trust team (none existed on 2026-09-24) for
-  `ACCESS_TEAM_DOMAIN` / `ACCESS_AUD`; until then `predeploy-check` refuses admin, deliberately.
+- Configs carry the ICT account, its D1 (`1088eb82-…`, APAC, migrations 0001–0003), the custom
+  domains, `workers_dev: false`, the ICT Turnstile site key and the Access values of Zero Trust team
+  `onemgb` (created by FAD's member login on 2026-09-24). The survey is live on the ICT account
+  (secrets set, workers.dev answers 1042); the staff side is ready to deploy.
+- The office network blocks new, unrated domains, so test onemgb.com hosts from mobile data until
+  FortiGuard has rated onemgb.com (rating requested 2026-09-24).
 - 234 tests pass (shared 148, admin 43, public 31 Worker + 12 UI/axe); typecheck and lint clean.
 - The earlier staff pilot on workers.dev verified Access sign-in, Turnstile, a real submission, the
   staff-side views and exports, and phones. Lighthouse mobile: performance 97, accessibility 100.

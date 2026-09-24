@@ -134,7 +134,7 @@ Access each cover the only way in. The member login reaches FAD's old account to
 **Accepted cost:** `onemgb.com` is a `.com`, not `gov.ph`: MGB ICT must keep it registered to MGB,
 on auto-renew and registrar-locked. If it lapsed, every printed QR code would break and someone
 else could register the name. Cloudflare's audit log shows FAD's changes under the member login.
-**Status:** active — survey side first; staff side waits on ICT's Zero Trust team.
+**Status:** active (Zero Trust team `onemgb` created 2026-09-24).
 
 Format for new entries:
 

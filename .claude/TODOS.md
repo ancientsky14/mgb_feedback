@@ -15,8 +15,8 @@ Check the code before trusting this list.
 - [ ] DPO: Privacy Impact Assessment, final privacy notice (replace the draft in `Privacy.tsx`),
       retention periods, advice on hosting outside the Philippines.
 - [x] Office-owned Cloudflare account: `Ict1@mgb.gov.ph`'s Account (MGB ICT); FAD is a member.
-- [ ] ICT: set up the account's Zero Trust team (team name, Free plan) and the Access application for
-      `feedback-admin.onemgb.com` — the staff side cannot move until then.
+- [x] Zero Trust team `onemgb` and the Access application for `feedback-admin.onemgb.com` (2026-09-24).
+- [ ] Turn on 2FA for the FAD member login (it holds broad rights in ICT's account).
 - [ ] ICT: keep `onemgb.com` registered to MGB, on auto-renew and registrar-locked (QR codes depend on it).
 - [ ] ICT: let `feedback.onemgb.com` and `feedback-admin.onemgb.com` through the office network (new
       domains arrive "unrated"), and have `onemgb.com` categorized with web-filter vendors, before any
